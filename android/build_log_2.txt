@@ -1,0 +1,314 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/mahal/.gradle/wrapper/dists/gradle-8.13-all/54h0s9kvb6g2sinako7ub77ku/gradle-8.13/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+Warning: Flutter support for your project's Kotlin version (1.8.22) will soon be dropped. Please upgrade your Kotlin version to a version of at least 2.1.0 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's KGP version is typically defined in the plugins block of the `settings.gradle` file (C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\FloatingVolume\android/settings.gradle), by a plugin with the id of org.jetbrains.kotlin.android. 
+If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\FloatingVolume\android/build.gradle) by the ext.kotlin_version property.
+
+Checking the license for package Android SDK Platform 36 in C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\AndroidSDK\licenses
+License for package Android SDK Platform 36 accepted.
+Preparing "Install Android SDK Platform 36 (revision 2)".
+"Install Android SDK Platform 36 (revision 2)" ready.
+Installing Android SDK Platform 36 in C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\AndroidSDK\platforms\android-36
+"Install Android SDK Platform 36 (revision 2)" complete.
+"Install Android SDK Platform 36 (revision 2)" finished.
+[=========                              ] 25%                                   [=========                              ] 25% Fetch remote repository...        [=======================================] 100% Fetch remote repository...       
+
+> Task :app:DebugMinSdkCheck
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:compileFlutterBuildDebug
+> Task :app:packJniLibsflutterBuildDebug
+> Task :device_info_plus:preBuild UP-TO-DATE
+> Task :device_info_plus:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:preBuild UP-TO-DATE
+> Task :permission_handler_android:preDebugBuild UP-TO-DATE
+> Task :device_info_plus:writeDebugAarMetadata
+> Task :shared_preferences_android:preBuild UP-TO-DATE
+> Task :shared_preferences_android:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:writeDebugAarMetadata
+> Task :url_launcher_android:preBuild UP-TO-DATE
+> Task :url_launcher_android:preDebugBuild UP-TO-DATE
+> Task :shared_preferences_android:writeDebugAarMetadata
+> Task :volume_controller:preBuild UP-TO-DATE
+> Task :volume_controller:preDebugBuild UP-TO-DATE
+> Task :url_launcher_android:writeDebugAarMetadata
+> Task :volume_controller:writeDebugAarMetadata
+> Task :app:cleanMergeDebugAssets UP-TO-DATE
+> Task :app:checkDebugAarMetadata
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :device_info_plus:mergeDebugShaders
+> Task :device_info_plus:compileDebugShaders NO-SOURCE
+> Task :device_info_plus:generateDebugAssets UP-TO-DATE
+> Task :device_info_plus:mergeDebugAssets
+> Task :permission_handler_android:mergeDebugShaders
+> Task :permission_handler_android:compileDebugShaders NO-SOURCE
+> Task :permission_handler_android:generateDebugAssets UP-TO-DATE
+> Task :permission_handler_android:mergeDebugAssets
+> Task :shared_preferences_android:mergeDebugShaders
+> Task :shared_preferences_android:compileDebugShaders NO-SOURCE
+> Task :shared_preferences_android:generateDebugAssets UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugAssets
+> Task :url_launcher_android:mergeDebugShaders
+> Task :url_launcher_android:compileDebugShaders NO-SOURCE
+> Task :url_launcher_android:generateDebugAssets UP-TO-DATE
+> Task :url_launcher_android:mergeDebugAssets
+> Task :volume_controller:mergeDebugShaders
+> Task :volume_controller:compileDebugShaders NO-SOURCE
+> Task :volume_controller:generateDebugAssets UP-TO-DATE
+> Task :volume_controller:mergeDebugAssets
+> Task :app:mergeDebugAssets
+> Task :app:copyFlutterAssetsDebug
+> Task :app:generateDebugResValues
+> Task :device_info_plus:generateDebugResValues
+> Task :device_info_plus:generateDebugResources
+> Task :device_info_plus:packageDebugResources
+> Task :permission_handler_android:generateDebugResValues
+> Task :permission_handler_android:generateDebugResources
+> Task :permission_handler_android:packageDebugResources
+> Task :shared_preferences_android:generateDebugResValues
+> Task :shared_preferences_android:generateDebugResources
+> Task :shared_preferences_android:packageDebugResources
+> Task :url_launcher_android:generateDebugResValues
+> Task :url_launcher_android:generateDebugResources
+> Task :url_launcher_android:packageDebugResources
+> Task :volume_controller:generateDebugResValues
+> Task :volume_controller:generateDebugResources
+> Task :volume_controller:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:mergeDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :device_info_plus:extractDeepLinksDebug
+> Task :permission_handler_android:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :shared_preferences_android:extractDeepLinksDebug
+> Task :url_launcher_android:extractDeepLinksDebug
+> Task :volume_controller:extractDeepLinksDebug
+
+> Task :permission_handler_android:processDebugManifest
+package="com.baseflow.permissionhandler" found in source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\permission_handler_android-13.0.1\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.baseflow.permissionhandler" from the source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\permission_handler_android-13.0.1\android\src\main\AndroidManifest.xml.
+
+> Task :device_info_plus:processDebugManifest
+package="dev.fluttercommunity.plus.device_info" found in source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\device_info_plus-11.5.0\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="dev.fluttercommunity.plus.device_info" from the source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\device_info_plus-11.5.0\android\src\main\AndroidManifest.xml.
+
+> Task :url_launcher_android:processDebugManifest
+package="io.flutter.plugins.urllauncher" found in source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\url_launcher_android-6.3.16\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="io.flutter.plugins.urllauncher" from the source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\url_launcher_android-6.3.16\android\src\main\AndroidManifest.xml.
+
+> Task :volume_controller:processDebugManifest
+package="com.kurenai7968.volume_controller" found in source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\volume_controller-3.4.0\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.kurenai7968.volume_controller" from the source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\volume_controller-3.4.0\android\src\main\AndroidManifest.xml.
+
+> Task :shared_preferences_android:processDebugManifest
+package="io.flutter.plugins.sharedpreferences" found in source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\shared_preferences_android-2.4.13\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="io.flutter.plugins.sharedpreferences" from the source AndroidManifest.xml: C:\Users\mahal\AppData\Local\Pub\Cache\hosted\pub.dev\shared_preferences_android-2.4.13\android\src\main\AndroidManifest.xml.
+
+> Task :device_info_plus:compileDebugLibraryResources
+> Task :app:processDebugMainManifest
+> Task :app:outputDebugAppLinkSettings
+> Task :app:processDebugManifest
+> Task :device_info_plus:parseDebugLocalResources
+> Task :permission_handler_android:compileDebugLibraryResources
+> Task :device_info_plus:generateDebugRFile
+> Task :permission_handler_android:parseDebugLocalResources
+> Task :shared_preferences_android:compileDebugLibraryResources
+> Task :permission_handler_android:generateDebugRFile
+> Task :shared_preferences_android:parseDebugLocalResources
+> Task :url_launcher_android:compileDebugLibraryResources
+> Task :shared_preferences_android:generateDebugRFile
+> Task :url_launcher_android:parseDebugLocalResources
+> Task :volume_controller:compileDebugLibraryResources
+> Task :volume_controller:parseDebugLocalResources
+> Task :url_launcher_android:generateDebugRFile
+> Task :volume_controller:generateDebugRFile
+> Task :device_info_plus:javaPreCompileDebug
+> Task :permission_handler_android:javaPreCompileDebug
+> Task :permission_handler_android:compileDebugJavaWithJavac
+> Task :shared_preferences_android:javaPreCompileDebug
+> Task :app:processDebugManifestForPackage
+> Task :permission_handler_android:bundleLibCompileToJarDebug
+> Task :url_launcher_android:generateDebugBuildConfig
+> Task :url_launcher_android:javaPreCompileDebug
+> Task :app:processDebugResources
+> Task :device_info_plus:compileDebugKotlin
+> Task :url_launcher_android:compileDebugJavaWithJavac
+> Task :volume_controller:javaPreCompileDebug
+> Task :app:javaPreCompileDebug
+> Task :url_launcher_android:bundleLibCompileToJarDebug
+> Task :permission_handler_android:processDebugJavaRes NO-SOURCE
+> Task :url_launcher_android:processDebugJavaRes NO-SOURCE
+
+> Task :volume_controller:compileDebugKotlin
+w: file:///C:/Users/mahal/AppData/Local/Pub/Cache/hosted/pub.dev/volume_controller-3.4.0/android/src/main/kotlin/com/kurenai7968/volume_controller/VolumeListener.kt:14:30 Unchecked cast: Any? to Map<String, Any>
+
+> Task :shared_preferences_android:compileDebugKotlin
+w: file:///C:/Users/mahal/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_android-2.4.13/android/src/main/kotlin/io/flutter/plugins/sharedpreferences/SharedPreferencesPlugin.kt:451:52 Unnecessary non-null assertion (!!) on a non-null receiver of type String
+
+> Task :app:compressDebugAssets
+> Task :device_info_plus:compileDebugJavaWithJavac NO-SOURCE
+> Task :device_info_plus:bundleLibCompileToJarDebug
+> Task :app:checkDebugDuplicateClasses
+> Task :shared_preferences_android:compileDebugJavaWithJavac
+> Task :volume_controller:compileDebugJavaWithJavac NO-SOURCE
+> Task :volume_controller:bundleLibCompileToJarDebug
+> Task :device_info_plus:processDebugJavaRes
+> Task :shared_preferences_android:bundleLibCompileToJarDebug
+> Task :shared_preferences_android:processDebugJavaRes
+> Task :volume_controller:processDebugJavaRes
+> Task :device_info_plus:bundleLibRuntimeToDirDebug
+> Task :app:desugarDebugFileDependencies
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+Checking the license for package CMake 3.22.1 in C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\AndroidSDK\licenses
+License for package CMake 3.22.1 accepted.
+Preparing "Install CMake 3.22.1 v.3.22.1".
+
+> Task :volume_controller:bundleLibRuntimeToDirDebug
+> Task :permission_handler_android:bundleLibRuntimeToDirDebug
+> Task :url_launcher_android:bundleLibRuntimeToDirDebug
+> Task :shared_preferences_android:bundleLibRuntimeToDirDebug
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in C:\Users\mahal\OneDrive - vaganet\ia\Antigravity\AndroidSDK\cmake\3.22.1
+
+> Task :app:compileDebugKotlin
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+
+> Task :app:compileDebugJavaWithJavac
+> Task :app:processDebugJavaRes
+> Task :app:mergeDebugJavaResource
+> Task :app:mergeLibDexDebug
+> Task :app:dexBuilderDebug
+> Task :app:buildCMakeDebug[arm64-v8a]
+> Task :app:mergeProjectDexDebug
+> Task :app:configureCMakeDebug[armeabi-v7a]
+> Task :app:buildCMakeDebug[armeabi-v7a]
+> Task :app:mergeExtDexDebug
+> Task :app:configureCMakeDebug[x86_64]
+> Task :app:buildCMakeDebug[x86_64]
+> Task :app:mergeDebugJniLibFolders
+> Task :device_info_plus:mergeDebugJniLibFolders
+> Task :device_info_plus:mergeDebugNativeLibs NO-SOURCE
+> Task :permission_handler_android:mergeDebugJniLibFolders
+> Task :permission_handler_android:mergeDebugNativeLibs NO-SOURCE
+> Task :device_info_plus:copyDebugJniLibsProjectOnly
+> Task :permission_handler_android:copyDebugJniLibsProjectOnly
+> Task :shared_preferences_android:mergeDebugJniLibFolders
+> Task :shared_preferences_android:mergeDebugNativeLibs NO-SOURCE
+> Task :shared_preferences_android:copyDebugJniLibsProjectOnly
+> Task :url_launcher_android:mergeDebugJniLibFolders
+> Task :url_launcher_android:mergeDebugNativeLibs NO-SOURCE
+> Task :url_launcher_android:copyDebugJniLibsProjectOnly
+> Task :volume_controller:mergeDebugJniLibFolders
+> Task :volume_controller:mergeDebugNativeLibs NO-SOURCE
+> Task :volume_controller:copyDebugJniLibsProjectOnly
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :device_info_plus:stripDebugDebugSymbols NO-SOURCE
+> Task :device_info_plus:copyDebugJniLibsProjectAndLocalJars
+> Task :device_info_plus:extractDebugAnnotations
+> Task :device_info_plus:extractDeepLinksForAarDebug
+> Task :device_info_plus:mergeDebugGeneratedProguardFiles
+> Task :device_info_plus:mergeDebugConsumerProguardFiles
+> Task :device_info_plus:prepareDebugArtProfile
+> Task :device_info_plus:prepareLintJarForPublish
+> Task :permission_handler_android:stripDebugDebugSymbols NO-SOURCE
+> Task :permission_handler_android:copyDebugJniLibsProjectAndLocalJars
+> Task :device_info_plus:mergeDebugJavaResource
+> Task :device_info_plus:syncDebugLibJars
+> Task :device_info_plus:bundleDebugAar
+> Task :device_info_plus:assembleDebug
+> Task :permission_handler_android:extractDeepLinksForAarDebug
+> Task :permission_handler_android:mergeDebugGeneratedProguardFiles
+> Task :permission_handler_android:mergeDebugConsumerProguardFiles
+> Task :permission_handler_android:prepareDebugArtProfile
+> Task :permission_handler_android:prepareLintJarForPublish
+> Task :shared_preferences_android:stripDebugDebugSymbols NO-SOURCE
+> Task :shared_preferences_android:copyDebugJniLibsProjectAndLocalJars
+> Task :permission_handler_android:mergeDebugJavaResource
+> Task :shared_preferences_android:extractDebugAnnotations
+> Task :shared_preferences_android:extractDeepLinksForAarDebug
+> Task :shared_preferences_android:mergeDebugGeneratedProguardFiles
+> Task :shared_preferences_android:mergeDebugConsumerProguardFiles
+> Task :shared_preferences_android:prepareDebugArtProfile
+> Task :shared_preferences_android:prepareLintJarForPublish
+> Task :url_launcher_android:stripDebugDebugSymbols NO-SOURCE
+> Task :url_launcher_android:copyDebugJniLibsProjectAndLocalJars
+> Task :shared_preferences_android:mergeDebugJavaResource
+> Task :url_launcher_android:extractDebugAnnotations
+> Task :shared_preferences_android:syncDebugLibJars
+> Task :shared_preferences_android:bundleDebugAar
+> Task :shared_preferences_android:assembleDebug
+> Task :url_launcher_android:extractDeepLinksForAarDebug
+> Task :url_launcher_android:mergeDebugGeneratedProguardFiles
+> Task :url_launcher_android:mergeDebugConsumerProguardFiles
+> Task :url_launcher_android:prepareDebugArtProfile
+> Task :url_launcher_android:prepareLintJarForPublish
+> Task :volume_controller:stripDebugDebugSymbols NO-SOURCE
+> Task :volume_controller:copyDebugJniLibsProjectAndLocalJars
+> Task :url_launcher_android:mergeDebugJavaResource
+> Task :volume_controller:extractDebugAnnotations
+> Task :url_launcher_android:syncDebugLibJars
+> Task :url_launcher_android:bundleDebugAar
+> Task :url_launcher_android:assembleDebug
+> Task :volume_controller:extractDeepLinksForAarDebug
+> Task :volume_controller:mergeDebugGeneratedProguardFiles
+> Task :volume_controller:mergeDebugConsumerProguardFiles
+> Task :volume_controller:prepareDebugArtProfile
+> Task :volume_controller:prepareLintJarForPublish
+> Task :volume_controller:mergeDebugJavaResource
+> Task :volume_controller:syncDebugLibJars
+> Task :volume_controller:bundleDebugAar
+> Task :volume_controller:assembleDebug
+> Task :app:mergeDebugNativeLibs
+> Task :app:stripDebugDebugSymbols
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :permission_handler_android:extractDebugAnnotations
+> Task :permission_handler_android:syncDebugLibJars
+> Task :permission_handler_android:bundleDebugAar
+> Task :permission_handler_android:assembleDebug
+
+[Incubating] Problems report is available at: file:///C:/Users/mahal/OneDrive%20-%20vaganet/ia/Antigravity/FloatingVolume/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 5m 30s
+192 actionable tasks: 187 executed, 5 up-to-date

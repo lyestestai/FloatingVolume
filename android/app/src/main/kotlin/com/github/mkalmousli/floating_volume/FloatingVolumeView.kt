@@ -39,7 +39,7 @@ class FloatingVolumeView(
 
             layoutParams = LayoutParams(
                 50,
-                300
+                900
             )
             orientation.value = CoolSlider.Orientation.Vertical
 
@@ -98,4 +98,14 @@ class FloatingVolumeView(
         addView(slider)
         addView(handleIv)
     }
+
+    fun toggleSliderVisibility() {
+        if (slider.visibility == VISIBLE) {
+            slider.visibility = GONE
+        } else {
+            slider.visibility = VISIBLE
+        }
+    }
+
+
 }

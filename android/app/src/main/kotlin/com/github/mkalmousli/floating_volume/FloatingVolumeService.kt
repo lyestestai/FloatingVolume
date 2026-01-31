@@ -78,6 +78,7 @@ class FloatingVolumeService : Service() {
 
     @SuppressLint("ClickableViewAccessibility")
     fun configureTouchListener() {
+        var startTime = 0L
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
@@ -90,6 +91,7 @@ class FloatingVolumeService : Service() {
                     initialY = layoutParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    startTime = System.currentTimeMillis()
                     true
                 }
 
@@ -112,6 +114,19 @@ class FloatingVolumeService : Service() {
                     }
 
                     windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                    true
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    val duration = System.currentTimeMillis() - startTime
+                    val dx = event.rawX - initialTouchX
+                    val dy = event.rawY - initialTouchY
+                    
+                    // If tap is short and movement is minimal, treat as click
+                    if (duration < 250 && kotlin.math.abs(dx.toDouble()) < 20.0 && kotlin.math.abs(dy.toDouble()) < 20.0) {
+                        floatingMuteView.toggleSliderVisibility()
+                        windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                    }
                     true
                 }
 

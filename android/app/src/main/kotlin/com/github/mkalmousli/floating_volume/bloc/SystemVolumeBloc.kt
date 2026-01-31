@@ -20,9 +20,7 @@ object SystemVolumeBloc {
 
     val state = _state.asStateFlow()
 
-
     val event = MutableSharedFlow<Event>()
-
 
     sealed class State {
         object Uninitialized : State()
@@ -34,13 +32,26 @@ object SystemVolumeBloc {
         object Mute : Event()
     }
 
+    private fun getTargetStream(context: Context): Int {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return if (audioManager.mode == AudioManager.MODE_IN_CALL ||
+            audioManager.mode == AudioManager.MODE_IN_COMMUNICATION
+        ) {
+            AudioManager.STREAM_VOICE_CALL
+        } else {
+            AudioManager.STREAM_MUSIC
+        }
+    }
 
     suspend fun observeSystemVolume(context: Context) {
         val flow = callbackFlow {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
-                    when (intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", 0)) {
-                        STREAM -> trySend(
+                    val targetStream = getTargetStream(context)
+                    val changedStream = intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", 0)
+
+                    if (changedStream == targetStream) {
+                        trySend(
                             intent.getIntExtra(
                                 "android.media.EXTRA_VOLUME_STREAM_VALUE",
                                 0
@@ -57,7 +68,6 @@ object SystemVolumeBloc {
             awaitClose { context.unregisterReceiver(receiver) }
         }
 
-
         flow.collectLatest {
             _state.emit(
                 State.Initialized(it)
@@ -65,26 +75,24 @@ object SystemVolumeBloc {
         }
     }
 
-
-    private const val STREAM = AudioManager.STREAM_MUSIC
-
-
     suspend fun initialize(context: Context) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val currentVolume = audioManager.getStreamVolume(STREAM)
+        val targetStream = getTargetStream(context)
+        val currentVolume = audioManager.getStreamVolume(targetStream)
 
         _state.emit(
             State.Initialized(currentVolume)
         )
-        Log.d("SystemVolumeBloc", "Initialized with volume: $currentVolume")
+        Log.d("SystemVolumeBloc", "Initialized with volume: $currentVolume for stream: $targetStream")
     }
 
     suspend fun handleEvents(context: Context) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         suspend fun setVolume(volume: Int) {
+            val targetStream = getTargetStream(context)
             audioManager.setStreamVolume(
-                STREAM,
+                targetStream,
                 volume,
                 AudioManager.FLAG_PLAY_SOUND
             )
@@ -94,7 +102,6 @@ object SystemVolumeBloc {
             )
         }
 
-
         event.collectLatest {
             when (it) {
                 is Event.SetVolume -> setVolume(it.volume)
@@ -102,5 +109,4 @@ object SystemVolumeBloc {
             }
         }
     }
-
 }
