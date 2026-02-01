@@ -45,6 +45,7 @@ class FloatingVolumeService : Service() {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
+        CrashHandler.init(this)
     }
 
 
