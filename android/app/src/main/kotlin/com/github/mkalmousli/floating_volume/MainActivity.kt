@@ -40,6 +40,8 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
 
 
+        CrashHandler.init(this)
+
         val c = this
         val audioManager = c.getSystemService(AUDIO_SERVICE) as android.media.AudioManager
 
