@@ -9,6 +9,14 @@
 </p>
 
 
+
+## What's New in v0.5.0rc1
+
+- **Dynamic Volume Scaling**: Adapts to device stream types and max volume.
+- **Crash Logging**: Local logging for better debugging.
+- **Slider Toggle**: Tap handle to toggle slider visibility.
+- **Tablet Stability**: Fixed critical crash on tablets.
+
 ## Get it
 
 F-Droid is the official and recommend way to get Floating Volume:
