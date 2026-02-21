@@ -46,6 +46,9 @@ class FloatingVolumeService : Service() {
     override fun onCreate() {
         super.onCreate()
         CrashHandler.init(this)
+
+        // Save service state for auto-start on boot
+        saveServiceState(running = true)
     }
 
 
@@ -313,6 +316,23 @@ class FloatingVolumeService : Service() {
 
         if (floatingMuteView.isAttachedToWindow) {
             windowManager.removeView(floatingMuteView)
+        }
+
+        // Save service state for auto-start on boot
+        saveServiceState(running = false)
+    }
+
+    /**
+     * Save the current service state to SharedPreferences.
+     * Used by BootReceiver to determine if service should start on boot.
+     */
+    private fun saveServiceState(running: Boolean) {
+        try {
+            val prefs = getSharedPreferences("floating_volume_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("last_service_state", running).apply()
+            Log.d(TAG, "Service state saved: running=$running")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save service state", e)
         }
     }
 

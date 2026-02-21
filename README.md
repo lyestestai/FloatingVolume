@@ -10,12 +10,13 @@
 
 
 
-## What's New in v0.5.0rc1
+## What's New in v0.6.0
 
-- **Dynamic Volume Scaling**: Adapts to device stream types and max volume.
-- **Crash Logging**: Local logging for better debugging.
-- **Slider Toggle**: Tap handle to toggle slider visibility.
-- **Tablet Stability**: Fixed critical crash on tablets.
+- **🚀 Auto-start on boot**: Service automatically starts when device boots (configurable)
+- **📋 Accessible crash logs**: Export and manage logs easily from the app
+- **⚙️ Settings section**: Configure auto-start, restore state, and startup delay
+- **🔍 Logs management**: View stats, export logs as ZIP, or clear all logs
+- **🛠️ Kotlin 2.1.0**: Updated for better compatibility with Flutter SDK
 
 ## Get it
 
@@ -47,6 +48,35 @@ F-Droid takes a while to publish new versions, if you want to get latest version
     </tr>
 </table>
 
+
+## Features
+
+- 🎵 **Floating volume control** - Draggable volume slider accessible from any app
+- 🔊 **Smart audio detection** - Automatically adjusts to active audio stream (calls, media, alarms, notifications)
+- 📱 **Repositionable widget** - Drag and place anywhere on screen
+- 🌓 **Theme support** - Light, Dark, or System theme
+- 🔔 **Persistent notification** - Quick access controls (Stop, Show/Hide)
+- **🚀 Auto-start on boot** (NEW v0.6.0)
+  - Configurable startup delay (0-30 seconds)
+  - Restore previous service state option
+- **📋 Crash logs management** (NEW v0.6.0)
+  - Accessible log directory
+  - Export and share logs as ZIP
+  - Automatic rotation (max 5 MB per file)
+  - View statistics (file count, size, dates)
+
+## Permissions
+
+Required permissions and their purpose:
+
+| Permission | Purpose |
+|------------|---------|
+| `SYSTEM_ALERT_WINDOW` | Display floating widget over other apps |
+| `MODIFY_AUDIO_SETTINGS` | Control system volume levels |
+| `FOREGROUND_SERVICE` | Keep service running in background |
+| `POST_NOTIFICATIONS` | Show persistent notification |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Prevent battery optimization from killing service |
+| `RECEIVE_BOOT_COMPLETED` | Auto-start service on device boot (NEW v0.6.0) |
 
 ## Build
 

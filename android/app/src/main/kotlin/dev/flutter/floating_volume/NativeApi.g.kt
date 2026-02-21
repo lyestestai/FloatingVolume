@@ -33,6 +33,36 @@ private object NativeApiPigeonUtils {
       )
     }
   }
+  fun deepEquals(a: Any?, b: Any?): Boolean {
+    if (a is ByteArray && b is ByteArray) {
+        return a.contentEquals(b)
+    }
+    if (a is IntArray && b is IntArray) {
+        return a.contentEquals(b)
+    }
+    if (a is LongArray && b is LongArray) {
+        return a.contentEquals(b)
+    }
+    if (a is DoubleArray && b is DoubleArray) {
+        return a.contentEquals(b)
+    }
+    if (a is Array<*> && b is Array<*>) {
+      return a.size == b.size &&
+          a.indices.all{ deepEquals(a[it], b[it]) }
+    }
+    if (a is List<*> && b is List<*>) {
+      return a.size == b.size &&
+          a.indices.all{ deepEquals(a[it], b[it]) }
+    }
+    if (a is Map<*, *> && b is Map<*, *>) {
+      return a.size == b.size && a.all {
+          (b as Map<Any?, Any?>).containsKey(it.key) &&
+          deepEquals(it.value, b[it.key])
+      }
+    }
+    return a == b
+  }
+      
 }
 
 /**
@@ -57,12 +87,58 @@ enum class ToastDuration(val raw: Int) {
     }
   }
 }
+
+/**
+ * Données des stats de logs
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class LogStatsData (
+  val totalFiles: Long,
+  val totalSizeBytes: Long,
+  val oldestLogDate: String? = null,
+  val newestLogDate: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): LogStatsData {
+      val totalFiles = pigeonVar_list[0] as Long
+      val totalSizeBytes = pigeonVar_list[1] as Long
+      val oldestLogDate = pigeonVar_list[2] as String?
+      val newestLogDate = pigeonVar_list[3] as String?
+      return LogStatsData(totalFiles, totalSizeBytes, oldestLogDate, newestLogDate)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      totalFiles,
+      totalSizeBytes,
+      oldestLogDate,
+      newestLogDate,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is LogStatsData) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return NativeApiPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
+}
 private open class NativeApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
           ToastDuration.ofRaw(it.toInt())
+        }
+      }
+      130.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          LogStatsData.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -73,6 +149,10 @@ private open class NativeApiPigeonCodec : StandardMessageCodec() {
       is ToastDuration -> {
         stream.write(129)
         writeValue(stream, value.raw)
+      }
+      is LogStatsData -> {
+        stream.write(130)
+        writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
     }
@@ -128,6 +208,60 @@ interface NativeApi {
    *
    */
   fun showToast(message: String, duration: ToastDuration, callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Configure si le service doit redémarrer automatiquement au boot
+   *
+   */
+  fun setAutoStartEnabled(enabled: Boolean, callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Récupère l'état de l'auto-start
+   *
+   */
+  fun getAutoStartEnabled(callback: (Result<Boolean>) -> Unit)
+  /**
+   *
+   * Définit le délai avant démarrage automatique (en millisecondes)
+   *
+   */
+  fun setAutoStartDelay(delayMs: Long, callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Récupère le délai d'auto-start (en millisecondes)
+   *
+   */
+  fun getAutoStartDelay(callback: (Result<Long>) -> Unit)
+  /**
+   *
+   * Configure si l'état du service doit être restauré après boot
+   *
+   */
+  fun setRestoreServiceState(enabled: Boolean, callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Récupère l'état du restore
+   *
+   */
+  fun getRestoreServiceState(callback: (Result<Boolean>) -> Unit)
+  /**
+   *
+   * Exporte les logs et retourne l'Intent de partage
+   *
+   */
+  fun exportLogsAndShare(callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Efface tous les logs
+   *
+   */
+  fun clearAllLogs(callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Récupère les statistiques des logs
+   *
+   */
+  fun getLogStats(callback: (Result<LogStatsData>) -> Unit)
 
   companion object {
     /** The codec used by NativeApi. */
@@ -257,6 +391,169 @@ interface NativeApi {
                 reply.reply(NativeApiPigeonUtils.wrapError(error))
               } else {
                 reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.setAutoStartEnabled$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val enabledArg = args[0] as Boolean
+            api.setAutoStartEnabled(enabledArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getAutoStartEnabled$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getAutoStartEnabled{ result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.setAutoStartDelay$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val delayMsArg = args[0] as Long
+            api.setAutoStartDelay(delayMsArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getAutoStartDelay$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getAutoStartDelay{ result: Result<Long> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.setRestoreServiceState$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val enabledArg = args[0] as Boolean
+            api.setRestoreServiceState(enabledArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getRestoreServiceState$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getRestoreServiceState{ result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.exportLogsAndShare$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.exportLogsAndShare{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.clearAllLogs$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.clearAllLogs{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getLogStats$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getLogStats{ result: Result<LogStatsData> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
               }
             }
           }

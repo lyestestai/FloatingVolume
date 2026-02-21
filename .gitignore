@@ -62,3 +62,6 @@ web/
 
 .CACHE
 app.apk
+
+# APK builds (too large for GitHub, upload to Releases instead)
+APK/*.apk

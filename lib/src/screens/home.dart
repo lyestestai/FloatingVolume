@@ -23,6 +23,10 @@ import 'package:floating_volume/src/bloc/theme/bloc.dart' as btheme;
 import 'package:floating_volume/src/bloc/theme/state.dart' as stheme;
 import 'package:floating_volume/src/bloc/theme/event.dart' as etheme;
 
+import 'package:floating_volume/src/bloc/settings.dart' as bsettings;
+import 'package:floating_volume/src/bloc/settings.dart' as esettings;
+import 'package:floating_volume/src/bloc/settings.dart' as ssettings;
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -72,6 +76,72 @@ class HomeScreen extends StatelessWidget {
 
             Gap(20),
 
+            // ========== SETTINGS SECTION ==========
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                "Settings",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Gap(10),
+
+            // Auto-start toggle
+            BlocBuilder<bsettings.Bloc, ssettings.State>(
+              builder: (context, state) {
+                return ListTile(
+                  title: const Text("Auto-start on boot"),
+                  subtitle: const Text("Start floating volume when device boots"),
+                  trailing: CoolSwitch(value: state.autoStartEnabled, width: 70),
+                  onTap: () => context.read<bsettings.Bloc>().add(
+                    const esettings.ToggleAutoStart(),
+                  ),
+                );
+              },
+            ),
+
+            // Restore state toggle
+            BlocBuilder<bsettings.Bloc, ssettings.State>(
+              builder: (context, state) {
+                return ListTile(
+                  title: const Text("Restore service state"),
+                  subtitle: const Text("Remember if service was running before boot"),
+                  trailing: CoolSwitch(value: state.restoreServiceState, width: 70),
+                  onTap: () => context.read<bsettings.Bloc>().add(
+                    const esettings.ToggleRestoreState(),
+                  ),
+                );
+              },
+            ),
+
+            // Startup delay slider
+            BlocBuilder<bsettings.Bloc, ssettings.State>(
+              builder: (context, state) {
+                final delaySeconds = (state.autoStartDelayMs / 1000).round();
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Startup delay: ${delaySeconds}s"),
+                      Slider(
+                        value: delaySeconds.toDouble(),
+                        min: 0,
+                        max: 30,
+                        divisions: 30,
+                        label: "${delaySeconds}s",
+                        onChanged: (value) => context.read<bsettings.Bloc>().add(
+                          esettings.SetAutoStartDelay((value * 1000).toInt()),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            const Gap(20),
+
             BlocBuilder<btheme.Bloc, stheme.State>(
               builder: (context, state) {
                 return Padding(
@@ -103,10 +173,93 @@ class HomeScreen extends StatelessWidget {
               },
             ),
 
+            // ========== LOGS SECTION ==========
+            const Gap(20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                "Logs & Debug",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Gap(10),
+
+            // Log statistics
+            FutureBuilder(
+              future: nativeApi.getLogStats(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return ListTile(
+                    title: const Text("Crash logs"),
+                    subtitle: const Text("Loading..."),
+                  );
+                }
+                final stats = snapshot.data!;
+                final sizeKB = (stats.totalSizeBytes / 1024).toStringAsFixed(1);
+                return ListTile(
+                  title: const Text("Crash logs"),
+                  subtitle: Text("${stats.totalFiles} files ($sizeKB KB)"),
+                );
+              },
+            ),
+
+            // Export logs button
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text("Export logs"),
+              subtitle: const Text("Share crash logs for debugging"),
+              onTap: () async {
+                try {
+                  await nativeApi.exportLogsAndShare();
+                  await nativeApi.showToast("Logs exported successfully");
+                } catch (e) {
+                  await nativeApi.showToast("No logs available");
+                }
+              },
+            ),
+
+            // Clear logs button
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text("Clear logs"),
+              subtitle: const Text("Delete all crash logs"),
+              onTap: () async {
+                // Confirmation dialog
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Clear all logs?"),
+                    content: const Text("This action cannot be undone."),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text("Clear"),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  try {
+                    await nativeApi.clearAllLogs();
+                    await nativeApi.showToast("Logs cleared");
+                  } catch (e) {
+                    await nativeApi.showToast("Failed to clear logs");
+                  }
+                }
+              },
+            ),
+
+            const Gap(20),
+
             ListTile(
               title: const Text("Version"),
-              trailing: Text("v0.0.3"),
-              subtitle: Text("11 Oct 2025"),
+              trailing: Text("v0.6.0"),
+              subtitle: Text("21 Feb 2026"),
             ),
             ListTile(
               title: const Text("Created by @mkalmousli"),

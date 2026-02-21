@@ -17,6 +17,10 @@ import 'package:floating_volume/src/bloc/theme/bloc.dart' as btheme;
 import 'package:floating_volume/src/bloc/theme/state.dart' as stheme;
 import 'package:floating_volume/src/bloc/theme/event.dart' as etheme;
 
+import 'package:floating_volume/src/bloc/settings.dart' as bsettings;
+import 'package:floating_volume/src/bloc/settings.dart' as esettings;
+import 'package:floating_volume/src/bloc/settings.dart' as ssettings;
+
 class FloatingVolumeApp extends StatelessWidget {
   const FloatingVolumeApp({super.key});
 
@@ -35,6 +39,10 @@ class FloatingVolumeApp extends StatelessWidget {
       ),
       BlocProvider(
         create: (_) => btheme.Bloc()..add(etheme.Event.initialize()),
+      ),
+      BlocProvider(
+        create: (_) => bsettings.Bloc(const ssettings.State())
+          ..add(const esettings.Initialize()),
       ),
     ],
     child: _FloatingVolumeAppView(),

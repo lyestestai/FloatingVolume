@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-21
+
+### Added
+- **Auto-start on boot** - Service can now automatically start when device boots
+  - Configurable toggle in settings section
+  - Startup delay configurable from 0-30 seconds (default: 3s)
+  - Option to restore previous service state after reboot
+  - Uses `RECEIVE_BOOT_COMPLETED` permission
+  - New `BootReceiver` handles boot and app update events
+- **Accessible crash logs** - Logs moved to user-accessible directory
+  - Automatic file rotation when exceeding 5 MB
+  - Export logs as ZIP file for easy sharing
+  - Clear all logs functionality with confirmation dialog
+  - Log statistics display (file count, total size, dates)
+  - Improved log format with unique IDs, timestamps, and thread names
+  - Logs saved in `/Android/data/.../files/logs/` instead of hidden root directory
+- **Settings UI section** - New dedicated section in home screen
+  - Auto-start on boot toggle
+  - Restore service state toggle
+  - Startup delay slider (0-30 seconds)
+- **Logs management UI** - Debug section in home screen
+  - View crash logs statistics
+  - Export logs button (shares via Intent)
+  - Clear logs button with confirmation dialog
+  - Real-time file count and size display
+
+### Changed
+- Crash logs now saved in accessible `/files/logs/` directory with automatic rotation
+- Log format improved with unique IDs (`[timestamp]`), timestamps (`yyyy-MM-dd HH:mm:ss.SSS`), and thread information
+- Service state now persisted in SharedPreferences for auto-start functionality
+- Home screen reorganized with new Settings and Logs sections
+
+### Fixed
+- Kotlin version upgraded to 2.1.0 (fixes compatibility warnings with Flutter SDK)
+- Improved error handling in crash log saving with better exception management
+- FileProvider configured for secure file sharing (fixes Android 11+ file access restrictions)
+
+### Technical
+- New Android components:
+  - `receiver/BootReceiver.kt` - Handles boot completion and app updates
+  - Enhanced `CrashHandler.kt` with rotation, export, and stats features
+  - FileProvider configuration (`res/xml/file_paths.xml`)
+- New Flutter BLoC:
+  - `bloc/settings/` - Manages auto-start and restore state preferences
+- API additions:
+  - 6 new Pigeon methods for auto-start configuration
+  - 3 new Pigeon methods for logs management
+  - New `LogStatsData` class for log statistics
+- SharedPreferences keys:
+  - `auto_start_enabled`, `restore_service_state`, `auto_start_delay_ms`, `last_service_state`
+
 ## [0.5.0rc1] - 2026-02-14
 
 ### Added
