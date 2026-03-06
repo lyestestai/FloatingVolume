@@ -13,6 +13,7 @@ import com.github.mkalmousli.floating_volume.bloc.SystemVolumeBloc
 import com.github.mkalmousli.floating_volume.bloc.MediaControlBloc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
@@ -259,7 +260,6 @@ class FloatingVolumeView(
     }
 
     init {
-        layoutTransition = android.animation.LayoutTransition()
         orientation = VERTICAL
         gravity = Gravity.CENTER
         
@@ -291,6 +291,7 @@ class FloatingVolumeView(
 
     fun showAnimated() {
         if (visibility == VISIBLE && alpha == 1f) return
+        animate().cancel()
         visibility = VISIBLE
         alpha = 0f
         scaleX = 0.8f
@@ -311,8 +312,14 @@ class FloatingVolumeView(
     }
 
     fun hideAnimated() {
+        animate().cancel()
         animate().alpha(0f).scaleX(0.8f).scaleY(0.8f).setDuration(200).setInterpolator(android.view.animation.AnticipateInterpolator()).withEndAction {
             visibility = GONE
         }.start()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        scope.cancel()
     }
 }

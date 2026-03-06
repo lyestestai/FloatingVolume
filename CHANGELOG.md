@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-03-06
+
+### Fixed
+- **Memory Leak:** Fixed a critical bug where `FloatingVolumeView` coroutines were not cancelled on view detach, causing background UI threading congestion.
+- **Media Controls Disappearing:** Removed `LayoutTransition` and fixed animation cancellations that caused the entire multimedia control bar to randomly get stuck in an invisible state after multiple toggles.
+
 ## [0.8.1] - 2026-03-06
 
 ### Added
