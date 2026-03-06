@@ -28,13 +28,34 @@ class CoolSlider(
 
     private val progressView by lazy {
         View(context).apply {
-            setBackgroundColor(
-                0xFF4CAF50.toInt()
-            )
+            val progressColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_accent1_500)
+            } else {
+                android.graphics.Color.parseColor("#2196F3")
+            }
+            
+            val drawable = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 100f // Fully rounded ends
+                setColor(progressColor)
+            }
+            background = drawable
         }
     }
 
     init {
+        val trackBgColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.getColor(android.R.color.system_neutral2_800)
+        } else {
+            android.graphics.Color.parseColor("#44000000") // Translucent dark
+        }
+        val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = 100f
+            setColor(trackBgColor)
+        }
+        background = trackDrawable
+        
         addView(progressView)
         gravity = Gravity.BOTTOM
 

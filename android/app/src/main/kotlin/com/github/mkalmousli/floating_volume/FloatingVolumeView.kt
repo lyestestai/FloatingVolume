@@ -40,13 +40,10 @@ class FloatingVolumeView(
             // Slider works in 0-1000 range for high precision
             min.value = 0
             max.value = 1000
-            setBackgroundColor(
-                0xFFCCCCCC.toInt()
-            )
-
+            
             layoutParams = LayoutParams(
-                50,
-                900
+                60, // slightly wider for modern feel
+                800 // slightly shorter
             )
             orientation.value = CoolSlider.Orientation.Vertical
 
@@ -200,11 +197,19 @@ class FloatingVolumeView(
         }
     }
 
+    private fun getRippleBackground(): Int {
+        val outValue = android.util.TypedValue()
+        context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+        return outValue.resourceId
+    }
+
     private val btnPrev by lazy {
         ImageView(context).apply {
             setImageResource(android.R.drawable.ic_media_previous)
-            alpha = 0.7f
-            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            alpha = 0.8f
+            setBackgroundResource(getRippleBackground())
+            val size = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 36f, resources.displayMetrics).toInt()
+            layoutParams = LayoutParams(size, size).apply { topMargin = 10; bottomMargin = 10 }
             setOnClickListener { MediaControlBloc.skipToPrevious(context) }
         }
     }
@@ -212,8 +217,10 @@ class FloatingVolumeView(
     private val btnPlayPause by lazy {
         ImageView(context).apply {
             setImageResource(android.R.drawable.ic_media_play)
-            alpha = 0.7f
-            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            alpha = 0.8f
+            setBackgroundResource(getRippleBackground())
+            val size = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 42f, resources.displayMetrics).toInt()
+            layoutParams = LayoutParams(size, size).apply { topMargin = 10; bottomMargin = 10 }
             setOnClickListener { 
                 val state = MediaControlBloc.mediaState.value
                 if (state.isPlaying) {
@@ -228,8 +235,10 @@ class FloatingVolumeView(
     private val btnNext by lazy {
         ImageView(context).apply {
             setImageResource(android.R.drawable.ic_media_next)
-            alpha = 0.7f
-            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            alpha = 0.8f
+            setBackgroundResource(getRippleBackground())
+            val size = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 36f, resources.displayMetrics).toInt()
+            layoutParams = LayoutParams(size, size).apply { topMargin = 10; bottomMargin = 10 }
             setOnClickListener { MediaControlBloc.skipToNext(context) }
         }
     }
@@ -250,8 +259,23 @@ class FloatingVolumeView(
     }
 
     init {
+        layoutTransition = android.animation.LayoutTransition()
         orientation = VERTICAL
         gravity = Gravity.CENTER
+        
+        val paddingPx = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_DIP, 16f, resources.displayMetrics
+        ).toInt()
+        setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
+        
+        val bgDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = 100f // Highly rounded pill shape
+            setColor(android.graphics.Color.parseColor("#33000000")) // Semi-transparent black for glass effect
+        }
+        background = bgDrawable
+        clipToOutline = true
+        
         addView(slider)
         addView(mediaControlsContainer)
         addView(handleIv)
@@ -265,5 +289,18 @@ class FloatingVolumeView(
         }
     }
 
+    fun showAnimated() {
+        if (visibility == VISIBLE && alpha == 1f) return
+        visibility = VISIBLE
+        alpha = 0f
+        scaleX = 0.8f
+        scaleY = 0.8f
+        animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(250).setInterpolator(android.view.animation.OvershootInterpolator()).start()
+    }
 
+    fun hideAnimated() {
+        animate().alpha(0f).scaleX(0.8f).scaleY(0.8f).setDuration(200).setInterpolator(android.view.animation.AnticipateInterpolator()).withEndAction {
+            visibility = GONE
+        }.start()
+    }
 }

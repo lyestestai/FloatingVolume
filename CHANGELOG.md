@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-06
+
+### Added
+- **Visual Overhaul ("Woah Effect"):** Completely redesigned the floating widget for a modern "Premium" look.
+- **Glassmorphism:** Added true blur behind effects for the floating widget container on Android 12+ devices.
+- **Material You:** The volume slider progress bar now dynamically adapts to the user's system theme and wallpaper colors using `system_accent1_500` (Android 12+).
+- **Fluid Animations:** Added smooth scale, fade, and overshoot/anticipate animations when showing and hiding the widget and media controls.
+- **Rounded Design:** Changed the widget background to a fully rounded pill shape with a semi-transparent glass effect.
+- **Interactive Feedback:** Added standard Android modern ripple effects (`selectableItemBackgroundBorderless`) to all media buttons for better tactile feedback.
+
 ## [0.7.0] - 2026-03-06
 
 ### Added

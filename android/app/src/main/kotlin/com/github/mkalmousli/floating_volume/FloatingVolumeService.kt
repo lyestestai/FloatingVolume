@@ -153,9 +153,14 @@ class FloatingVolumeService : Service() {
                 @Suppress("DEPRECATION")
                 LayoutParams.TYPE_PHONE
             },
-            LayoutParams.FLAG_NOT_FOCUSABLE,
+            LayoutParams.FLAG_NOT_FOCUSABLE or
+            (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) LayoutParams.FLAG_BLUR_BEHIND else 0),
             PixelFormat.TRANSLUCENT
-        )
+        ).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                blurBehindRadius = 50
+            }
+        }
 
 
 
@@ -353,12 +358,12 @@ class FloatingVolumeService : Service() {
                     when (it) {
                         VisibilityBloc.State.Hidden -> {
                             newInMain {
-                                floatingMuteView.visibility = android.view.View.GONE
+                                floatingMuteView.hideAnimated()
                             }
                         }
                         VisibilityBloc.State.Shown -> {
                             newInMain {
-                                floatingMuteView.visibility = android.view.View.VISIBLE
+                                floatingMuteView.showAnimated()
                             }
                         }
                     }

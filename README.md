@@ -12,6 +12,7 @@
 
 ## What's New? 🔥
 
+- **v0.8.0:** Visual Overhaul ("Woah Effect")! The floating widget now features Glassmorphism (blur behind), dynamic Material You colors that match your wallpaper on Android 12+, fluid scale and fade animations, and a modern pill-shaped design with ripple click effects!
 - **v0.7.0:** Added dynamic Media Controls (Previous, Play/Pause, Next) directly to the floating widget!
 - **v0.6.1:** Fixed an issue where sound adjustments stopped working when closing the app. Fixed the background auto-start option not triggering after a device reboot on Android 12+.
 
@@ -48,11 +49,11 @@ F-Droid takes a while to publish new versions, if you want to get latest version
 
 ## Features
 
+- ✨ **Premium Visuals** (NEW v0.8.0) - Glassmorphism, Material You dynamic colors, and fluid scale animations!
 - 🎵 **Floating volume control** - Draggable volume slider accessible from any app
 - ⏯️ **Media controls** (NEW v0.7.0) - Play, pause, skip tracks right from the widget globally
 - 🔊 **Smart audio detection** - Automatically adjusts to active audio stream (calls, media, alarms, notifications)
 - 📱 **Repositionable widget** - Drag and place anywhere on screen
-- 🌓 **Theme support** - Light, Dark, or System theme
 - 🔔 **Persistent notification** - Quick access controls (Stop, Show/Hide)
 - **🚀 Auto-start on boot** (NEW v0.6.0)
   - Configurable startup delay (0-30 seconds)
