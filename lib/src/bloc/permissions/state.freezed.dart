@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$State {
 
- PermissionState get overlayPermission; PermissionState get notificationPermission; PermissionState get batteryOptimizationPermission; Operation get operation;
+ PermissionState get overlayPermission; PermissionState get notificationPermission; PermissionState get batteryOptimizationPermission; PermissionState get notificationAccessPermission; Operation get operation;
 /// Create a copy of State
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,16 +26,16 @@ $StateCopyWith<State> get copyWith => _$StateCopyWithImpl<State>(this as State, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is State&&(identical(other.overlayPermission, overlayPermission) || other.overlayPermission == overlayPermission)&&(identical(other.notificationPermission, notificationPermission) || other.notificationPermission == notificationPermission)&&(identical(other.batteryOptimizationPermission, batteryOptimizationPermission) || other.batteryOptimizationPermission == batteryOptimizationPermission)&&(identical(other.operation, operation) || other.operation == operation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is State&&(identical(other.overlayPermission, overlayPermission) || other.overlayPermission == overlayPermission)&&(identical(other.notificationPermission, notificationPermission) || other.notificationPermission == notificationPermission)&&(identical(other.batteryOptimizationPermission, batteryOptimizationPermission) || other.batteryOptimizationPermission == batteryOptimizationPermission)&&(identical(other.notificationAccessPermission, notificationAccessPermission) || other.notificationAccessPermission == notificationAccessPermission)&&(identical(other.operation, operation) || other.operation == operation));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,overlayPermission,notificationPermission,batteryOptimizationPermission,operation);
+int get hashCode => Object.hash(runtimeType,overlayPermission,notificationPermission,batteryOptimizationPermission,notificationAccessPermission,operation);
 
 @override
 String toString() {
-  return 'State(overlayPermission: $overlayPermission, notificationPermission: $notificationPermission, batteryOptimizationPermission: $batteryOptimizationPermission, operation: $operation)';
+  return 'State(overlayPermission: $overlayPermission, notificationPermission: $notificationPermission, batteryOptimizationPermission: $batteryOptimizationPermission, notificationAccessPermission: $notificationAccessPermission, operation: $operation)';
 }
 
 
@@ -46,11 +46,11 @@ abstract mixin class $StateCopyWith<$Res>  {
   factory $StateCopyWith(State value, $Res Function(State) _then) = _$StateCopyWithImpl;
 @useResult
 $Res call({
- PermissionState overlayPermission, PermissionState notificationPermission, PermissionState batteryOptimizationPermission, Operation operation
+ PermissionState overlayPermission, PermissionState notificationPermission, PermissionState batteryOptimizationPermission, PermissionState notificationAccessPermission, Operation operation
 });
 
 
-$PermissionStateCopyWith<$Res> get overlayPermission;$PermissionStateCopyWith<$Res> get notificationPermission;$PermissionStateCopyWith<$Res> get batteryOptimizationPermission;
+$PermissionStateCopyWith<$Res> get overlayPermission;$PermissionStateCopyWith<$Res> get notificationPermission;$PermissionStateCopyWith<$Res> get batteryOptimizationPermission;$PermissionStateCopyWith<$Res> get notificationAccessPermission;
 
 }
 /// @nodoc
@@ -63,11 +63,12 @@ class _$StateCopyWithImpl<$Res>
 
 /// Create a copy of State
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? overlayPermission = null,Object? notificationPermission = null,Object? batteryOptimizationPermission = null,Object? operation = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? overlayPermission = null,Object? notificationPermission = null,Object? batteryOptimizationPermission = null,Object? notificationAccessPermission = null,Object? operation = null,}) {
   return _then(_self.copyWith(
 overlayPermission: null == overlayPermission ? _self.overlayPermission : overlayPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,notificationPermission: null == notificationPermission ? _self.notificationPermission : notificationPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,batteryOptimizationPermission: null == batteryOptimizationPermission ? _self.batteryOptimizationPermission : batteryOptimizationPermission // ignore: cast_nullable_to_non_nullable
+as PermissionState,notificationAccessPermission: null == notificationAccessPermission ? _self.notificationAccessPermission : notificationAccessPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,operation: null == operation ? _self.operation : operation // ignore: cast_nullable_to_non_nullable
 as Operation,
   ));
@@ -99,6 +100,15 @@ $PermissionStateCopyWith<$Res> get batteryOptimizationPermission {
   return $PermissionStateCopyWith<$Res>(_self.batteryOptimizationPermission, (value) {
     return _then(_self.copyWith(batteryOptimizationPermission: value));
   });
+}/// Create a copy of State
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PermissionStateCopyWith<$Res> get notificationAccessPermission {
+  
+  return $PermissionStateCopyWith<$Res>(_self.notificationAccessPermission, (value) {
+    return _then(_self.copyWith(notificationAccessPermission: value));
+  });
 }
 }
 
@@ -107,12 +117,13 @@ $PermissionStateCopyWith<$Res> get batteryOptimizationPermission {
 
 
 class _State extends State {
-  const _State({this.overlayPermission = const PermissionState(), this.notificationPermission = const PermissionState(), this.batteryOptimizationPermission = const PermissionState(), this.operation = Operation.none}): super._();
+  const _State({this.overlayPermission = const PermissionState(), this.notificationPermission = const PermissionState(), this.batteryOptimizationPermission = const PermissionState(), this.notificationAccessPermission = const PermissionState(), this.operation = Operation.none}): super._();
   
 
 @override@JsonKey() final  PermissionState overlayPermission;
 @override@JsonKey() final  PermissionState notificationPermission;
 @override@JsonKey() final  PermissionState batteryOptimizationPermission;
+@override@JsonKey() final  PermissionState notificationAccessPermission;
 @override@JsonKey() final  Operation operation;
 
 /// Create a copy of State
@@ -125,16 +136,16 @@ _$StateCopyWith<_State> get copyWith => __$StateCopyWithImpl<_State>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _State&&(identical(other.overlayPermission, overlayPermission) || other.overlayPermission == overlayPermission)&&(identical(other.notificationPermission, notificationPermission) || other.notificationPermission == notificationPermission)&&(identical(other.batteryOptimizationPermission, batteryOptimizationPermission) || other.batteryOptimizationPermission == batteryOptimizationPermission)&&(identical(other.operation, operation) || other.operation == operation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _State&&(identical(other.overlayPermission, overlayPermission) || other.overlayPermission == overlayPermission)&&(identical(other.notificationPermission, notificationPermission) || other.notificationPermission == notificationPermission)&&(identical(other.batteryOptimizationPermission, batteryOptimizationPermission) || other.batteryOptimizationPermission == batteryOptimizationPermission)&&(identical(other.notificationAccessPermission, notificationAccessPermission) || other.notificationAccessPermission == notificationAccessPermission)&&(identical(other.operation, operation) || other.operation == operation));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,overlayPermission,notificationPermission,batteryOptimizationPermission,operation);
+int get hashCode => Object.hash(runtimeType,overlayPermission,notificationPermission,batteryOptimizationPermission,notificationAccessPermission,operation);
 
 @override
 String toString() {
-  return 'State(overlayPermission: $overlayPermission, notificationPermission: $notificationPermission, batteryOptimizationPermission: $batteryOptimizationPermission, operation: $operation)';
+  return 'State(overlayPermission: $overlayPermission, notificationPermission: $notificationPermission, batteryOptimizationPermission: $batteryOptimizationPermission, notificationAccessPermission: $notificationAccessPermission, operation: $operation)';
 }
 
 
@@ -145,11 +156,11 @@ abstract mixin class _$StateCopyWith<$Res> implements $StateCopyWith<$Res> {
   factory _$StateCopyWith(_State value, $Res Function(_State) _then) = __$StateCopyWithImpl;
 @override @useResult
 $Res call({
- PermissionState overlayPermission, PermissionState notificationPermission, PermissionState batteryOptimizationPermission, Operation operation
+ PermissionState overlayPermission, PermissionState notificationPermission, PermissionState batteryOptimizationPermission, PermissionState notificationAccessPermission, Operation operation
 });
 
 
-@override $PermissionStateCopyWith<$Res> get overlayPermission;@override $PermissionStateCopyWith<$Res> get notificationPermission;@override $PermissionStateCopyWith<$Res> get batteryOptimizationPermission;
+@override $PermissionStateCopyWith<$Res> get overlayPermission;@override $PermissionStateCopyWith<$Res> get notificationPermission;@override $PermissionStateCopyWith<$Res> get batteryOptimizationPermission;@override $PermissionStateCopyWith<$Res> get notificationAccessPermission;
 
 }
 /// @nodoc
@@ -162,11 +173,12 @@ class __$StateCopyWithImpl<$Res>
 
 /// Create a copy of State
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? overlayPermission = null,Object? notificationPermission = null,Object? batteryOptimizationPermission = null,Object? operation = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? overlayPermission = null,Object? notificationPermission = null,Object? batteryOptimizationPermission = null,Object? notificationAccessPermission = null,Object? operation = null,}) {
   return _then(_State(
 overlayPermission: null == overlayPermission ? _self.overlayPermission : overlayPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,notificationPermission: null == notificationPermission ? _self.notificationPermission : notificationPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,batteryOptimizationPermission: null == batteryOptimizationPermission ? _self.batteryOptimizationPermission : batteryOptimizationPermission // ignore: cast_nullable_to_non_nullable
+as PermissionState,notificationAccessPermission: null == notificationAccessPermission ? _self.notificationAccessPermission : notificationAccessPermission // ignore: cast_nullable_to_non_nullable
 as PermissionState,operation: null == operation ? _self.operation : operation // ignore: cast_nullable_to_non_nullable
 as Operation,
   ));
@@ -198,6 +210,15 @@ $PermissionStateCopyWith<$Res> get batteryOptimizationPermission {
   
   return $PermissionStateCopyWith<$Res>(_self.batteryOptimizationPermission, (value) {
     return _then(_self.copyWith(batteryOptimizationPermission: value));
+  });
+}/// Create a copy of State
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PermissionStateCopyWith<$Res> get notificationAccessPermission {
+  
+  return $PermissionStateCopyWith<$Res>(_self.notificationAccessPermission, (value) {
+    return _then(_self.copyWith(notificationAccessPermission: value));
   });
 }
 }

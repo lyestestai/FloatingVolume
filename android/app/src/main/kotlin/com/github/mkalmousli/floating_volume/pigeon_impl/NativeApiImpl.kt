@@ -20,23 +20,27 @@ class NativeApiImpl(
     private val scope: CoroutineScope
 ) : NativeApi {
     override fun startService(callback: (Result<Unit>) -> Unit) {
-        scope.inIO {
-            ServiceStatusBloc.event.emit(
-                ServiceStatusBloc.Event.Start
-            )
-            inMain {
+        scope.inMain {
+            try {
+                val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java)
+                context.startService(intent)
+                // Service status is now updated in FloatingVolumeService.onCreate()
                 callback(Result.success(Unit))
+            } catch (e: Exception) {
+                callback(Result.failure(e))
             }
         }
     }
 
     override fun stopService(callback: (Result<Unit>) -> Unit) {
-        scope.inIO {
-            ServiceStatusBloc.event.emit(
-                ServiceStatusBloc.Event.Stop
-            )
-            inMain {
+        scope.inMain {
+            try {
+                val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java)
+                context.stopService(intent)
+                // Service status is now updated in FloatingVolumeService.onDestroy()
                 callback(Result.success(Unit))
+            } catch (e: Exception) {
+                callback(Result.failure(e))
             }
         }
     }
@@ -239,6 +243,35 @@ class NativeApiImpl(
                 inMain { callback(Result.success(data)) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting log stats", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
+    // ========== Media Controls ==========
+
+    override fun hasNotificationAccess(callback: (Result<Boolean>) -> Unit) {
+        scope.inIO {
+            try {
+                val enabledPackages = androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context)
+                val isGranted = enabledPackages.contains(context.packageName)
+                inMain { callback(Result.success(isGranted)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to check notification access", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
+    override fun requestNotificationAccess(callback: (Result<Unit>) -> Unit) {
+        scope.inIO {
+            try {
+                val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                inMain { callback(Result.success(Unit)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open notification settings", e)
                 inMain { callback(Result.failure(e)) }
             }
         }

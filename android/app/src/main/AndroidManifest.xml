@@ -47,6 +47,16 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <service
+            android:name=".media.FloatingNotificationListener"
+            android:label="Floating Volume Media Control"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -81,6 +91,9 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.MEDIA_BUTTON" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

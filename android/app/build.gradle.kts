@@ -36,8 +36,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 4
-        versionName = "0.5.0.beta.010226"
+        versionCode = 6
+        versionName = "0.7.0"
     }
     signingConfigs {
         create("release") {
@@ -55,6 +55,14 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
+        }
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "FloatingVolume-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
     

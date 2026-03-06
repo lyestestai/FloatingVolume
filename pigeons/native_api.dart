@@ -118,6 +118,14 @@ abstract class NativeApi {
   ///
   @async
   LogStatsData getLogStats();
+
+  // ========== Media Controls ==========
+
+  @async
+  bool hasNotificationAccess();
+
+  @async
+  void requestNotificationAccess();
 }
 
 enum ToastDuration { short, long }
@@ -135,4 +143,11 @@ class LogStatsData {
     this.oldestLogDate,
     this.newestLogDate,
   });
+}
+
+/// Action à envoyer au lecteur multimédia ("play", "pause", "next", "prev")
+@HostApi()
+abstract class MediaApi {
+  @async
+  void sendMediaAction(String action);
 }

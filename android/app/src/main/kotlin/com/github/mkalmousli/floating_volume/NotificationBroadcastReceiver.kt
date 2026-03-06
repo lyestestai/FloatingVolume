@@ -34,10 +34,9 @@ class NotificationBroadcastReceiver : BroadcastReceiver() {
             }
 
             Action.STOP -> {
-                scope.launch {
-                    ServiceStatusBloc.event.emit(
-                        ServiceStatusBloc.Event.Stop
-                    )
+                context?.let { ctx ->
+                    val i = Intent(ctx, FloatingVolumeService::class.java)
+                    ctx.stopService(i)
                 }
             }
 

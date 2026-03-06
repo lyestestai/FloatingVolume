@@ -30,6 +30,7 @@ class PermissionsScreen extends StatelessWidget {
           const Gap(20),
           _OverlayPermission(),
           _NotificationPermission(),
+          _NotificationAccessPermission(),
           _BatteryOptimizationPermission(),
           const Gap(30),
 
@@ -132,6 +133,36 @@ class _BatteryOptimizationPermission extends StatelessWidget {
                     : () {
                       context.read<bpermissions.Bloc>().add(
                         epermissions.Event.requestBatteryOptimizationPermission,
+                      );
+                    },
+            trailing: CoolSwitch(value: isGranted, width: 70),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NotificationAccessPermission extends StatelessWidget {
+  const _NotificationAccessPermission({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<bpermissions.Bloc, spermissions.State>(
+      builder: (context, state) {
+        final isGranted = state.notificationAccessPermission.status.isGranted;
+
+        return Opacity(
+          opacity: isGranted ? 0.5 : 1,
+          child: ListTile(
+            title: Text("Media Notification Access"),
+            subtitle: Text("Allows media controls to read currently playing music."),
+            onTap:
+                isGranted
+                    ? null
+                    : () {
+                      context.read<bpermissions.Bloc>().add(
+                        epermissions.Event.requestNotificationAccessPermission,
                       );
                     },
             trailing: CoolSwitch(value: isGranted, width: 70),

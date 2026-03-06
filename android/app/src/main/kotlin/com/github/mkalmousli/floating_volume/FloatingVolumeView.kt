@@ -10,6 +10,7 @@ import android.widget.SeekBar
 import androidx.core.view.marginTop
 import androidx.core.view.updateMargins
 import com.github.mkalmousli.floating_volume.bloc.SystemVolumeBloc
+import com.github.mkalmousli.floating_volume.bloc.MediaControlBloc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -67,7 +68,14 @@ class FloatingVolumeView(
                         .filterIsInstance<SystemVolumeBloc.State.Initialized>()
                         .collectLatest { state ->
                              currentMaxVolume = state.maxVolume
+                             val oldStreamType = currentStreamType
                              currentStreamType = state.streamType
+                             
+                             if (oldStreamType != currentStreamType) {
+                                 inMain {
+                                     updateMediaControlsVisibility()
+                                 }
+                             }
                              
                              // Only update if difference is significant to avoid loops/jitter
                              val newSliderVal = mapSystemVolumeToSlider(state.volume)
@@ -85,7 +93,30 @@ class FloatingVolumeView(
                         )
                     }
                 }
+
+                // Listener: Media State changes
+                scope.inIO {
+                    MediaControlBloc.mediaState.collectLatest { state ->
+                        inMain {
+                            updateMediaControlsVisibility()
+                            if (state.isPlaying) {
+                                btnPlayPause.setImageResource(android.R.drawable.ic_media_pause)
+                            } else {
+                                btnPlayPause.setImageResource(android.R.drawable.ic_media_play)
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private fun updateMediaControlsVisibility() {
+        val state = MediaControlBloc.mediaState.value
+        if (state.isActive || currentStreamType == android.media.AudioManager.STREAM_MUSIC) {
+            mediaControlsContainer.visibility = VISIBLE
+        } else {
+            mediaControlsContainer.visibility = GONE
         }
     }
 
@@ -169,10 +200,60 @@ class FloatingVolumeView(
         }
     }
 
+    private val btnPrev by lazy {
+        ImageView(context).apply {
+            setImageResource(android.R.drawable.ic_media_previous)
+            alpha = 0.7f
+            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            setOnClickListener { MediaControlBloc.skipToPrevious(context) }
+        }
+    }
+
+    private val btnPlayPause by lazy {
+        ImageView(context).apply {
+            setImageResource(android.R.drawable.ic_media_play)
+            alpha = 0.7f
+            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            setOnClickListener { 
+                val state = MediaControlBloc.mediaState.value
+                if (state.isPlaying) {
+                    MediaControlBloc.pause(context)
+                } else {
+                    MediaControlBloc.play(context)
+                }
+            }
+        }
+    }
+
+    private val btnNext by lazy {
+        ImageView(context).apply {
+            setImageResource(android.R.drawable.ic_media_next)
+            alpha = 0.7f
+            layoutParams = LayoutParams(50, 50).apply { topMargin = 10; bottomMargin = 10 }
+            setOnClickListener { MediaControlBloc.skipToNext(context) }
+        }
+    }
+
+    private val mediaControlsContainer by lazy {
+        LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+                topMargin = 10
+            }
+            visibility = GONE
+            
+            addView(btnPrev)
+            addView(btnPlayPause)
+            addView(btnNext)
+        }
+    }
+
     init {
         orientation = VERTICAL
         gravity = Gravity.CENTER
         addView(slider)
+        addView(mediaControlsContainer)
         addView(handleIv)
     }
 

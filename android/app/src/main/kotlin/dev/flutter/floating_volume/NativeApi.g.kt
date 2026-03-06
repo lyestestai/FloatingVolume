@@ -262,6 +262,8 @@ interface NativeApi {
    *
    */
   fun getLogStats(callback: (Result<LogStatsData>) -> Unit)
+  fun hasNotificationAccess(callback: (Result<Boolean>) -> Unit)
+  fun requestNotificationAccess(callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by NativeApi. */
@@ -554,6 +556,80 @@ interface NativeApi {
               } else {
                 val data = result.getOrNull()
                 reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.hasNotificationAccess$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.hasNotificationAccess{ result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.requestNotificationAccess$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.requestNotificationAccess{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/**
+ * Action à envoyer au lecteur multimédia ("play", "pause", "next", "prev")
+ *
+ * Generated interface from Pigeon that represents a handler of messages from Flutter.
+ */
+interface MediaApi {
+  fun sendMediaAction(action: String, callback: (Result<Unit>) -> Unit)
+
+  companion object {
+    /** The codec used by MediaApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      NativeApiPigeonCodec()
+    }
+    /** Sets up an instance of `MediaApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: MediaApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.MediaApi.sendMediaAction$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val actionArg = args[0] as String
+            api.sendMediaAction(actionArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
               }
             }
           }

@@ -45,6 +45,11 @@ class Bloc extends a.Bloc<e.Event, s.State> {
                   isInitialized: true,
                   status: PermissionStatus.granted,
                 ),
+            notificationAccessPermission: state.notificationAccessPermission
+                .copyWith(
+                  isInitialized: true,
+                  status: PermissionStatus.granted,
+                ),
           ),
         );
         return;
@@ -59,6 +64,7 @@ class Bloc extends a.Bloc<e.Event, s.State> {
           final notificationPermission = await Permission.notification.status;
           final batteryOptimizationPermission =
               await Permission.ignoreBatteryOptimizations.status;
+          final bool hasNotificationAccess = await nativeApi.hasNotificationAccess();
 
           emit(
             state.copyWith(
@@ -76,6 +82,13 @@ class Bloc extends a.Bloc<e.Event, s.State> {
                     isInitialized: true,
                     status: batteryOptimizationPermission,
                   ),
+              notificationAccessPermission: state.notificationAccessPermission
+                  .copyWith(
+                    isInitialized: true,
+                    status: hasNotificationAccess
+                        ? PermissionStatus.granted
+                        : PermissionStatus.denied,
+                  ),
             ),
           );
 
@@ -89,6 +102,18 @@ class Bloc extends a.Bloc<e.Event, s.State> {
             );
             await for (final status in stream) {
               onStatusChanged(status);
+            }
+          }
+
+          Future<void> observeNotificationAccess(
+            Function(PermissionStatus v) onStatusChanged,
+          ) async {
+            while (true) {
+              await Future.delayed(const Duration(seconds: 5));
+              final hasAccess = await nativeApi.hasNotificationAccess();
+              onStatusChanged(
+                hasAccess ? PermissionStatus.granted : PermissionStatus.denied,
+              );
             }
           }
 
@@ -119,6 +144,15 @@ class Bloc extends a.Bloc<e.Event, s.State> {
                 state.copyWith(
                   batteryOptimizationPermission: state
                       .batteryOptimizationPermission
+                      .copyWith(status: status),
+                ),
+              ),
+            ),
+            observeNotificationAccess(
+              (status) => emit(
+                state.copyWith(
+                  notificationAccessPermission: state
+                      .notificationAccessPermission
                       .copyWith(status: status),
                 ),
               ),
@@ -208,6 +242,28 @@ class Bloc extends a.Bloc<e.Event, s.State> {
               batteryOptimizationPermission: state.batteryOptimizationPermission
                   .copyWith(
                     status: batteryOptimizationPermission,
+                    operation: s.PermissionOperation.none,
+                  ),
+            ),
+          );
+          break;
+
+        case e.Event.requestNotificationAccessPermission:
+          emit(
+            state.copyWith(
+              notificationAccessPermission: state.notificationAccessPermission
+                  .copyWith(
+                    operation: s.PermissionOperation.requestingPermission,
+                  ),
+            ),
+          );
+
+          await nativeApi.requestNotificationAccess();
+
+          emit(
+            state.copyWith(
+              notificationAccessPermission: state.notificationAccessPermission
+                  .copyWith(
                     operation: s.PermissionOperation.none,
                   ),
             ),

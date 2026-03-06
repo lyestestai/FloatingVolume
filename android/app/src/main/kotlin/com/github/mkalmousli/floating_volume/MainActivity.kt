@@ -16,6 +16,10 @@ import com.github.mkalmousli.floating_volume.bloc.VisibilityBloc
 import com.github.mkalmousli.floating_volume.pigeon_impl.FloatingVolumeVisibilityStreamHandlerImpl
 import com.github.mkalmousli.floating_volume.pigeon_impl.NativeApiImpl
 import com.github.mkalmousli.floating_volume.pigeon_impl.ServiceStatusStreamHandlerImpl
+import com.github.mkalmousli.floating_volume.pigeon_impl.MediaApiImpl
+import com.github.mkalmousli.floating_volume.pigeon_impl.MediaStateStreamHandlerImpl
+import MediaApi
+import MediaStateStreamHandler
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -43,7 +47,6 @@ class MainActivity : FlutterActivity() {
         CrashHandler.init(this)
 
         val c = this
-        val audioManager = c.getSystemService(AUDIO_SERVICE) as android.media.AudioManager
 
         lifecycleScope.apply {
             /**
@@ -52,78 +55,6 @@ class MainActivity : FlutterActivity() {
              */
             inMain {
                 createNotificationChannel()
-            }
-
-
-            /**
-             * [SystemVolumeBloc] is responsible for managing the system volume.
-             */
-            // Initialize the SystemVolumeBloc and start observing system volume changes.
-            inIO {
-                SystemVolumeBloc.initialize(c)
-                SystemVolumeBloc.observeSystemVolume(c)
-            }
-            /// Handle events for the SystemVolumeBloc.
-            inIO {
-                SystemVolumeBloc.handleEvents(c)
-            }
-
-            /**
-             * [SystemVolumeInPercentageBloc]
-             */
-            inIO {
-                SystemVolumeInPercentageBloc.initialize(audioManager)
-                SystemVolumeInPercentageBloc.listenToVolumeChange(audioManager)
-            }
-
-
-            /**
-             * [SystemOrientationBloc]
-             */
-            inIO {
-                SystemOrientationBloc.initialize(c)
-            }
-            inIO {
-                SystemOrientationBloc.observeSystemOrientation(c)
-            }
-
-
-
-            /**
-             * [PositionBloc]
-             */
-            inIO {
-                PositionBloc.initialize(c)
-            }
-            inIO {
-                PositionBloc.handleOrientationChanges(c)
-            }
-            inIO {
-                PositionBloc.handleEvents(c)
-            }
-
-
-
-
-
-            /**
-             * [ServiceStatusBloc]
-             */
-            inIO {
-                ServiceStatusBloc.registerEvents(c)
-            }
-
-
-
-
-            /**
-             * [VisibilityBloc]
-             */
-            inIO {
-                VisibilityBloc.registerEvents()
-            }
-            inIO {
-                VisibilityBloc.handleServiceStatusChanges()
             }
         }
 
@@ -152,6 +83,20 @@ class MainActivity : FlutterActivity() {
                 FloatingVolumeVisibilityStreamHandler.register(
                     flutterEngine.dartExecutor.binaryMessenger,
                     FloatingVolumeVisibilityStreamHandlerImpl(lifecycleScope)
+                )
+            }
+
+            inMain {
+                MediaApi.setUp(
+                    flutterEngine.dartExecutor.binaryMessenger,
+                    MediaApiImpl(context)
+                )
+            }
+
+            inMain {
+                MediaStateStreamHandler.register(
+                    flutterEngine.dartExecutor.binaryMessenger,
+                    MediaStateStreamHandlerImpl(lifecycleScope)
                 )
             }
         }

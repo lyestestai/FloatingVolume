@@ -10,13 +10,10 @@
 
 
 
-## What's New in v0.6.0
+## What's New? 🔥
 
-- **🚀 Auto-start on boot**: Service automatically starts when device boots (configurable)
-- **📋 Accessible crash logs**: Export and manage logs easily from the app
-- **⚙️ Settings section**: Configure auto-start, restore state, and startup delay
-- **🔍 Logs management**: View stats, export logs as ZIP, or clear all logs
-- **🛠️ Kotlin 2.1.0**: Updated for better compatibility with Flutter SDK
+- **v0.7.0:** Added dynamic Media Controls (Previous, Play/Pause, Next) directly to the floating widget!
+- **v0.6.1:** Fixed an issue where sound adjustments stopped working when closing the app. Fixed the background auto-start option not triggering after a device reboot on Android 12+.
 
 ## Get it
 
@@ -52,6 +49,7 @@ F-Droid takes a while to publish new versions, if you want to get latest version
 ## Features
 
 - 🎵 **Floating volume control** - Draggable volume slider accessible from any app
+- ⏯️ **Media controls** (NEW v0.7.0) - Play, pause, skip tracks right from the widget globally
 - 🔊 **Smart audio detection** - Automatically adjusts to active audio stream (calls, media, alarms, notifications)
 - 📱 **Repositionable widget** - Drag and place anywhere on screen
 - 🌓 **Theme support** - Light, Dark, or System theme
@@ -65,6 +63,12 @@ F-Droid takes a while to publish new versions, if you want to get latest version
   - Automatic rotation (max 5 MB per file)
   - View statistics (file count, size, dates)
 
+### Media Controls (v0.7.0)
+When adjusting your media volume, the widget now intelligently displays playback controls. You can play, pause, and skip tracks seamlessly without leaving your current app or game!
+<p align="center">
+  <img src="images/media_controls.gif" alt="Media Controls Demo" width="250px"/>
+</p>
+
 ## Permissions
 
 Required permissions and their purpose:
@@ -72,11 +76,12 @@ Required permissions and their purpose:
 | Permission | Purpose |
 |------------|---------|
 | `SYSTEM_ALERT_WINDOW` | Display floating widget over other apps |
+| `BIND_NOTIFICATION_LISTENER_SERVICE` | Required to detect and control active media sessions (NEW v0.7.0) |
 | `MODIFY_AUDIO_SETTINGS` | Control system volume levels |
 | `FOREGROUND_SERVICE` | Keep service running in background |
 | `POST_NOTIFICATIONS` | Show persistent notification |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Prevent battery optimization from killing service |
-| `RECEIVE_BOOT_COMPLETED` | Auto-start service on device boot (NEW v0.6.0) |
+| `RECEIVE_BOOT_COMPLETED` | Auto-start service on device boot |
 
 ## Build
 

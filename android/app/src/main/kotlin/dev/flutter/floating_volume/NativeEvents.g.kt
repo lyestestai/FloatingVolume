@@ -13,13 +13,97 @@ import io.flutter.plugin.common.StandardMessageCodec
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 private object NativeEventsPigeonUtils {
+  fun deepEquals(a: Any?, b: Any?): Boolean {
+    if (a is ByteArray && b is ByteArray) {
+        return a.contentEquals(b)
+    }
+    if (a is IntArray && b is IntArray) {
+        return a.contentEquals(b)
+    }
+    if (a is LongArray && b is LongArray) {
+        return a.contentEquals(b)
+    }
+    if (a is DoubleArray && b is DoubleArray) {
+        return a.contentEquals(b)
+    }
+    if (a is Array<*> && b is Array<*>) {
+      return a.size == b.size &&
+          a.indices.all{ deepEquals(a[it], b[it]) }
+    }
+    if (a is List<*> && b is List<*>) {
+      return a.size == b.size &&
+          a.indices.all{ deepEquals(a[it], b[it]) }
+    }
+    if (a is Map<*, *> && b is Map<*, *>) {
+      return a.size == b.size && a.all {
+          (b as Map<Any?, Any?>).containsKey(it.key) &&
+          deepEquals(it.value, b[it.key])
+      }
+    }
+    return a == b
+  }
+      
+}
+
+/**
+ * Represents the current state of the active media session
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class MediaState (
+  val title: String? = null,
+  val artist: String? = null,
+  val isPlaying: Boolean,
+  val isActive: Boolean
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): MediaState {
+      val title = pigeonVar_list[0] as String?
+      val artist = pigeonVar_list[1] as String?
+      val isPlaying = pigeonVar_list[2] as Boolean
+      val isActive = pigeonVar_list[3] as Boolean
+      return MediaState(title, artist, isPlaying, isActive)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      title,
+      artist,
+      isPlaying,
+      isActive,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is MediaState) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return NativeEventsPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
 }
 private open class NativeEventsPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
-    return     super.readValueOfType(type, buffer)
+    return when (type) {
+      129.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          MediaState.fromList(it)
+        }
+      }
+      else -> super.readValueOfType(type, buffer)
+    }
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
-    super.writeValue(stream, value)
+    when (value) {
+      is MediaState -> {
+        stream.write(129)
+        writeValue(stream, value.toList())
+      }
+      else -> super.writeValue(stream, value)
+    }
   }
 }
 
@@ -83,6 +167,19 @@ abstract class FloatingVolumeVisibilityStreamHandler : NativeEventsPigeonEventCh
         channelName += ".$instanceName"
       }
       val internalStreamHandler = NativeEventsPigeonStreamHandler<Boolean>(streamHandler)
+      EventChannel(messenger, channelName, NativeEventsPigeonMethodCodec).setStreamHandler(internalStreamHandler)
+    }
+  }
+}
+      
+abstract class MediaStateStreamHandler : NativeEventsPigeonEventChannelWrapper<MediaState> {
+  companion object {
+    fun register(messenger: BinaryMessenger, streamHandler: MediaStateStreamHandler, instanceName: String = "") {
+      var channelName: String = "dev.flutter.pigeon.floating_volume.NativeEvents.mediaState"
+      if (instanceName.isNotEmpty()) {
+        channelName += ".$instanceName"
+      }
+      val internalStreamHandler = NativeEventsPigeonStreamHandler<MediaState>(streamHandler)
       EventChannel(messenger, channelName, NativeEventsPigeonMethodCodec).setStreamHandler(internalStreamHandler)
     }
   }

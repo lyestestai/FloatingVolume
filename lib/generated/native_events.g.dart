@@ -7,6 +7,77 @@ import 'dart:typed_data' show Float64List, Int32List, Int64List, Uint8List;
 
 import 'package:flutter/foundation.dart' show ReadBuffer, WriteBuffer;
 import 'package:flutter/services.dart';
+bool _deepEquals(Object? a, Object? b) {
+  if (a is List && b is List) {
+    return a.length == b.length &&
+        a.indexed
+        .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
+  }
+  if (a is Map && b is Map) {
+    return a.length == b.length && a.entries.every((MapEntry<Object?, Object?> entry) =>
+        (b as Map<Object?, Object?>).containsKey(entry.key) &&
+        _deepEquals(entry.value, b[entry.key]));
+  }
+  return a == b;
+}
+
+
+/// Represents the current state of the active media session
+class MediaState {
+  MediaState({
+    this.title,
+    this.artist,
+    required this.isPlaying,
+    required this.isActive,
+  });
+
+  String? title;
+
+  String? artist;
+
+  bool isPlaying;
+
+  bool isActive;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      title,
+      artist,
+      isPlaying,
+      isActive,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static MediaState decode(Object result) {
+    result as List<Object?>;
+    return MediaState(
+      title: result[0] as String?,
+      artist: result[1] as String?,
+      isPlaying: result[2]! as bool,
+      isActive: result[3]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! MediaState || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(encode(), other.encode());
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => Object.hashAll(_toList())
+;
+}
 
 
 class _PigeonCodec extends StandardMessageCodec {
@@ -16,6 +87,9 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
+    }    else if (value is MediaState) {
+      buffer.putUint8(129);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -24,6 +98,8 @@ class _PigeonCodec extends StandardMessageCodec {
   @override
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
+      case 129: 
+        return MediaState.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -51,6 +127,17 @@ Stream<bool> floatingVolumeVisibility( {String instanceName = ''}) {
       EventChannel('dev.flutter.pigeon.floating_volume.NativeEvents.floatingVolumeVisibility$instanceName', pigeonMethodCodec);
   return floatingVolumeVisibilityChannel.receiveBroadcastStream().map((dynamic event) {
     return event as bool;
+  });
+}
+    
+Stream<MediaState> mediaState( {String instanceName = ''}) {
+  if (instanceName.isNotEmpty) {
+    instanceName = '.$instanceName';
+  }
+  final EventChannel mediaStateChannel =
+      EventChannel('dev.flutter.pigeon.floating_volume.NativeEvents.mediaState$instanceName', pigeonMethodCodec);
+  return mediaStateChannel.receiveBroadcastStream().map((dynamic event) {
+    return event as MediaState;
   });
 }
     

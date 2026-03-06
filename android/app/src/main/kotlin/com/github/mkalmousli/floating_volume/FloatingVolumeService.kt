@@ -21,6 +21,9 @@ import androidx.core.app.NotificationManagerCompat
 import com.github.mkalmousli.floating_volume.bloc.PositionBloc
 import com.github.mkalmousli.floating_volume.bloc.ServiceStatusBloc
 import com.github.mkalmousli.floating_volume.bloc.VisibilityBloc
+import com.github.mkalmousli.floating_volume.bloc.SystemOrientationBloc
+import com.github.mkalmousli.floating_volume.bloc.SystemVolumeBloc
+import com.github.mkalmousli.floating_volume.bloc.SystemVolumeInPercentageBloc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,6 +52,83 @@ class FloatingVolumeService : Service() {
 
         // Save service state for auto-start on boot
         saveServiceState(running = true)
+
+        val c = this
+        val audioManager = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        scope.apply {
+            /**
+             * [SystemVolumeBloc] is responsible for managing the system volume.
+             */
+            inIO {
+                SystemVolumeBloc.initialize(c)
+                SystemVolumeBloc.observeSystemVolume(c)
+            }
+            inIO {
+                SystemVolumeBloc.handleEvents(c)
+            }
+
+            /**
+             * [SystemVolumeInPercentageBloc]
+             */
+            inIO {
+                SystemVolumeInPercentageBloc.initialize(audioManager)
+                SystemVolumeInPercentageBloc.listenToVolumeChange(audioManager)
+            }
+
+            /**
+             * [SystemOrientationBloc]
+             */
+            inIO {
+                SystemOrientationBloc.initialize(c)
+            }
+            inIO {
+                SystemOrientationBloc.observeSystemOrientation(c)
+            }
+
+            /**
+             * [PositionBloc]
+             */
+            inIO {
+                PositionBloc.initialize(c)
+            }
+            inIO {
+                PositionBloc.handleOrientationChanges(c)
+            }
+            inIO {
+                PositionBloc.handleEvents(c)
+            }
+
+            /**
+             * [ServiceStatusBloc]
+             */
+            inIO {
+                ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
+            }
+
+            /**
+             * [VisibilityBloc]
+             */
+            inIO {
+                VisibilityBloc.registerEvents()
+            }
+            inIO {
+                VisibilityBloc.handleServiceStatusChanges()
+            }
+            
+            // Force rebind NotificationListenerService to fix the issue where it doesn't automatically connect
+            inIO {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        android.service.notification.NotificationListenerService.requestRebind(
+                            android.content.ComponentName(c, com.github.mkalmousli.floating_volume.media.FloatingNotificationListener::class.java)
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to request rebind", e)
+                }
+            }
+        }
     }
 
 
@@ -309,17 +389,25 @@ class FloatingVolumeService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        scope.cancel()
+        Log.d(TAG, "Service being destroyed")
 
-        val notificationManager = NotificationManagerCompat.from(this)
+        val notificationManager = androidx.core.app.NotificationManagerCompat.from(this)
         notificationManager.cancel(NOTIFICATION_ID)
 
         if (floatingMuteView.isAttachedToWindow) {
             windowManager.removeView(floatingMuteView)
         }
 
-        // Save service state for auto-start on boot
         saveServiceState(running = false)
+
+        try {
+            val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.unregisterMediaButtonEventReceiver(android.content.ComponentName(packageName, NotificationBroadcastReceiver::class.java.name))
+        } catch (_: Exception) {}
+
+        ServiceStatusBloc.updateState(ServiceStatusBloc.State.Off)
+        
+        scope.cancel()
     }
 
     /**

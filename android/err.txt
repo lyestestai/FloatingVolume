@@ -1,0 +1,15 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/mahal/.gradle/wrapper/dists/gradle-8.13-all/54h0s9kvb6g2sinako7ub77ku/gradle-8.13/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+^CTerminer le programme de commandes (O/N)ÿ? Terminer le programme de commandes (O/N)ÿ? 

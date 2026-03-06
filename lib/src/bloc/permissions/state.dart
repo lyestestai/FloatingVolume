@@ -11,6 +11,7 @@ abstract class State with _$State {
     @Default(PermissionState()) PermissionState overlayPermission,
     @Default(PermissionState()) PermissionState notificationPermission,
     @Default(PermissionState()) PermissionState batteryOptimizationPermission,
+    @Default(PermissionState()) PermissionState notificationAccessPermission,
     @Default(Operation.none) Operation operation,
   }) = _State;
 
@@ -19,12 +20,14 @@ abstract class State with _$State {
   bool get isInitialized =>
       overlayPermission.isInitialized &&
       notificationPermission.isInitialized &&
-      batteryOptimizationPermission.isInitialized;
+      batteryOptimizationPermission.isInitialized &&
+      notificationAccessPermission.isInitialized;
 
   bool get isGranted =>
       overlayPermission.status.isGranted &&
       notificationPermission.status.isGranted &&
-      batteryOptimizationPermission.status.isGranted;
+      batteryOptimizationPermission.status.isGranted &&
+      notificationAccessPermission.status.isGranted;
 }
 
 enum PermissionOperation { none, requestingPermission }

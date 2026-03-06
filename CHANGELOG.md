@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-06
+
+### Added
+- **Media Controls:** Added Previous, Play/Pause, and Next buttons directly to the floating widget for quick track control.
+- **Dynamic Visibility:** Media buttons automatically show up when adjusting media volume (`STREAM_MUSIC`) and update their state based on active background audio sessions.
+- **Media App Detection:** Native support (`android.intent.action.MEDIA_BUTTON`) for controlling background music players (e.g. Spotify, YouTube Music) on Android 11+.
+- **Pigeon Integration:** Added `MediaApi` and `MediaStateStream` streams to support future Flutter-side metadata displays.
+- **Service Rebind Mechanism:** Added automatic reconnection (`requestRebind`) to `NotificationListenerService` to fix common Android issues where background listeners fail to start.
+
+## [0.6.1] - 2026-02-21
+
+### Fixed
+- **Audio Adjustment Bug**: Fixed an issue where the floating slider would stop controlling system volume after the app was closed from recent tasks. This was caused by BLoCs being tied to the MainActivity lifecycle instead of the background service.
+- **Auto-start on Android 12+**: Resolved a `ForegroundServiceStartNotAllowedException` occurring on device boot by replacing the delayed `Handler` in `BootReceiver` with an `AlarmManager` deferred intent.
+
 ## [0.6.0] - 2026-02-21
 
 ### Added

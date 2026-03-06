@@ -23,4 +23,24 @@ abstract class NativeEvents {
   /// Also wether its visible or not.
   ///
   bool floatingVolumeVisibility();
+
+  ///
+  /// Stream that emits the current media state (title, artist, playing status).
+  ///
+  MediaState mediaState();
+}
+
+/// Represents the current state of the active media session
+class MediaState {
+  final String? title;
+  final String? artist;
+  final bool isPlaying;
+  final bool isActive;
+
+  MediaState({
+    this.title,
+    this.artist,
+    required this.isPlaying,
+    required this.isActive,
+  });
 }

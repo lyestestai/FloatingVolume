@@ -3,4 +3,5 @@ enum Event {
   requestOverlayPermission,
   requestNotificationPermission,
   requestBatteryOptimizationPermission,
+  requestNotificationAccessPermission,
 }
