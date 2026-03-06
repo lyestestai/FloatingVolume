@@ -41,6 +41,10 @@ class FloatingVolumeService : Service() {
     companion object {
         const val NOTIFICATION_ID = 1
         const val TAG = "FloatingService"
+        
+        @SuppressLint("StaticFieldLeak")
+        var instance: FloatingVolumeService? = null
+            private set
     }
 
     override fun onBind(intent: Intent?) = null
@@ -48,6 +52,7 @@ class FloatingVolumeService : Service() {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
+        instance = this
         CrashHandler.init(this)
 
         // Save service state for auto-start on boot
@@ -142,7 +147,6 @@ class FloatingVolumeService : Service() {
         FloatingVolumeView(this)
     }
 
-
     private var layoutParams =
         LayoutParams(
             LayoutParams.WRAP_CONTENT,
@@ -161,6 +165,27 @@ class FloatingVolumeService : Service() {
                 blurBehindRadius = 50
             }
         }
+
+    fun applyAppearanceSettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
+        Log.d(TAG, "Applying Appearance Settings: $settings")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (settings.enableBlur) {
+                layoutParams.flags = layoutParams.flags or LayoutParams.FLAG_BLUR_BEHIND
+                layoutParams.blurBehindRadius = 50
+            } else {
+                layoutParams.flags = layoutParams.flags and LayoutParams.FLAG_BLUR_BEHIND.inv()
+                layoutParams.blurBehindRadius = 0
+            }
+        }
+        
+        // Update window parameters if it's currently attached
+        if (floatingMuteView.isAttachedToWindow) {
+            windowManager.updateViewLayout(floatingMuteView, layoutParams)
+        }
+        
+        // Pass settings down to the view levels 
+        floatingMuteView.applySettings(settings)
+    }
 
 
 
@@ -413,6 +438,7 @@ class FloatingVolumeService : Service() {
         ServiceStatusBloc.updateState(ServiceStatusBloc.State.Off)
         
         scope.cancel()
+        instance = null
     }
 
     /**

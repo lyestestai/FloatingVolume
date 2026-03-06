@@ -11,7 +11,7 @@ import 'package:floating_volume/src/bloc/permissions/state.dart'
 import 'package:floating_volume/src/bloc/status/bloc.dart' as bstatus;
 import 'package:floating_volume/src/bloc/status/event.dart' as estatus;
 import 'package:floating_volume/src/bloc/status/state.dart' as sstatus;
-import 'package:device_info_plus/device_info_plus.dart';
+
 
 import 'package:floating_volume/src/bloc/theme/bloc.dart' as btheme;
 import 'package:floating_volume/src/bloc/theme/state.dart' as stheme;
@@ -20,6 +20,10 @@ import 'package:floating_volume/src/bloc/theme/event.dart' as etheme;
 import 'package:floating_volume/src/bloc/settings.dart' as bsettings;
 import 'package:floating_volume/src/bloc/settings.dart' as esettings;
 import 'package:floating_volume/src/bloc/settings.dart' as ssettings;
+
+import 'package:floating_volume/src/bloc/appearance/bloc.dart' as bappearance;
+import 'package:floating_volume/src/bloc/appearance/event.dart' as eappearance;
+import 'package:floating_volume/src/bloc/appearance/state.dart' as sappearance;
 
 class FloatingVolumeApp extends StatelessWidget {
   const FloatingVolumeApp({super.key});
@@ -43,6 +47,10 @@ class FloatingVolumeApp extends StatelessWidget {
       BlocProvider(
         create: (_) => bsettings.Bloc(const ssettings.State())
           ..add(const esettings.Initialize()),
+      ),
+      BlocProvider(
+        create: (_) => bappearance.AppearanceBloc()
+          ..add(const eappearance.InitializeAppearance()),
       ),
     ],
     child: _FloatingVolumeAppView(),

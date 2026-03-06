@@ -120,6 +120,35 @@ class CoolSlider(
         }
     }
 
+    fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
+        // Update Track
+        val trackBgColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.getColor(android.R.color.system_neutral2_800)
+        } else {
+            android.graphics.Color.parseColor("#44000000") // Translucent dark
+        }
+        val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = settings.cornerRadius.toFloat()
+            setColor(trackBgColor)
+        }
+        background = trackDrawable
+
+        // Update Progress Bar
+        val progressColor = if (settings.enableDynamicColors && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.getColor(android.R.color.system_accent1_500)
+        } else {
+            android.graphics.Color.parseColor("#2196F3")
+        }
+        val progressDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = settings.cornerRadius.toFloat()
+            setColor(progressColor)
+        }
+        progressView.background = progressDrawable
+        progressView.alpha = settings.sliderOpacity.toFloat()
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         scope.cancel()

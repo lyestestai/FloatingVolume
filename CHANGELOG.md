@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-03-06
+
+### Added
+- **Flutter UI Redesign:** Completely refactored the main app settings interface adopting Material 3 design principles.
+- **Categorized Navigation:** Replaced the continuous scrolling list with a modern `BottomNavigationBar` separating options into "Appearance", "Behavior", and "About" tabs.
+- **Interactive Visual Controls:** Added a dedicated "Appearance" tab allowing real-time customization of the floating widget's Glassmorphism (blur), Material You dynamic colors, and Corner Radius.
+- **Pigeon Communication:** Implemented a synchronous Pigeon API channel (`AppearanceApi`) sending Dart UI preferences directly into the Native Kotlin View for instant live previews.
+- **State Persistence:** Wired the new visual customization controls to `rx_shared_preferences` ensuring settings survive app restarts and device reboots.
+
 ## [0.8.0] - 2026-03-06
 
 ### Added

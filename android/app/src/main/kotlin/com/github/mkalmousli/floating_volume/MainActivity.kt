@@ -99,6 +99,13 @@ class MainActivity : FlutterActivity() {
                     MediaStateStreamHandlerImpl(lifecycleScope)
                 )
             }
+
+            inMain {
+                com.github.mkalmousli.floating_volume.pigeon_impl.AppearanceApi.setUp(
+                    flutterEngine.dartExecutor.binaryMessenger,
+                    com.github.mkalmousli.floating_volume.pigeon_impl.AppearanceApiImpl()
+                )
+            }
         }
     }
 }

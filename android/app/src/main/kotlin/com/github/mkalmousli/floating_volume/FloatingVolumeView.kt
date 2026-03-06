@@ -298,6 +298,18 @@ class FloatingVolumeView(
         animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(250).setInterpolator(android.view.animation.OvershootInterpolator()).start()
     }
 
+    fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
+        val bgDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = settings.cornerRadius.toFloat()
+            val baseColor = if (settings.enableBlur) "#33000000" else "#99000000"
+            setColor(android.graphics.Color.parseColor(baseColor))
+        }
+        background = bgDrawable
+        
+        slider.applySettings(settings)
+    }
+
     fun hideAnimated() {
         animate().alpha(0f).scaleX(0.8f).scaleY(0.8f).setDuration(200).setInterpolator(android.view.animation.AnticipateInterpolator()).withEndAction {
             visibility = GONE
