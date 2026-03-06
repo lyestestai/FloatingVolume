@@ -39,7 +39,7 @@ class FloatingVolumeApp extends StatelessWidget {
       ),
       BlocProvider(
         create:
-            (_) => bstatus.Bloc(sstatus.State())..add(estatus.Event.initialize),
+            (_) => bstatus.Bloc(sstatus.State())..add(const estatus.Initialize()),
       ),
       BlocProvider(
         create: (_) => btheme.Bloc()..add(etheme.Event.initialize()),
