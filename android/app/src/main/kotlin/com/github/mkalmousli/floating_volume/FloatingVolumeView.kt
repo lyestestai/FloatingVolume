@@ -296,7 +296,18 @@ class FloatingVolumeView(
         alpha = 0f
         scaleX = 0.8f
         scaleY = 0.8f
-        animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(250).setInterpolator(android.view.animation.OvershootInterpolator()).start()
+        animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(250)
+            .setInterpolator(android.view.animation.OvershootInterpolator())
+            .withEndAction {
+                alpha = 1f
+                scaleX = 1f
+                scaleY = 1f
+            }
+            .start()
     }
 
     fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
@@ -313,9 +324,17 @@ class FloatingVolumeView(
 
     fun hideAnimated() {
         animate().cancel()
-        animate().alpha(0f).scaleX(0.8f).scaleY(0.8f).setDuration(200).setInterpolator(android.view.animation.AnticipateInterpolator()).withEndAction {
-            visibility = GONE
-        }.start()
+        animate()
+            .alpha(0f)
+            .scaleX(0.8f)
+            .scaleY(0.8f)
+            .setDuration(200)
+            .setInterpolator(android.view.animation.AnticipateInterpolator())
+            .withEndAction {
+                visibility = GONE
+                alpha = 0f
+            }
+            .start()
     }
 
     override fun onDetachedFromWindow() {

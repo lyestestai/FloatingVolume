@@ -129,7 +129,7 @@ class FloatingVolumeService : Service() {
                             android.content.ComponentName(c, com.github.mkalmousli.floating_volume.media.FloatingNotificationListener::class.java)
                         )
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.e(TAG, "Failed to request rebind", e)
                 }
             }
@@ -158,24 +158,27 @@ class FloatingVolumeService : Service() {
                 LayoutParams.TYPE_PHONE
             },
             LayoutParams.FLAG_NOT_FOCUSABLE or
+            LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            LayoutParams.FLAG_LAYOUT_NO_LIMITS or
             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) LayoutParams.FLAG_BLUR_BEHIND else 0),
             PixelFormat.TRANSLUCENT
-        ).apply {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                blurBehindRadius = 50
-            }
-        }
+        )
 
     fun applyAppearanceSettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
         Log.d(TAG, "Applying Appearance Settings: $settings")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (settings.enableBlur) {
-                layoutParams.flags = layoutParams.flags or LayoutParams.FLAG_BLUR_BEHIND
-                layoutParams.blurBehindRadius = 50
-            } else {
-                layoutParams.flags = layoutParams.flags and LayoutParams.FLAG_BLUR_BEHIND.inv()
-                layoutParams.blurBehindRadius = 0
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (settings.enableBlur) {
+                    layoutParams.flags = layoutParams.flags or LayoutParams.FLAG_BLUR_BEHIND
+                    layoutParams.blurBehindRadius = 50
+                } else {
+                    layoutParams.flags = layoutParams.flags and LayoutParams.FLAG_BLUR_BEHIND.inv()
+                    layoutParams.blurBehindRadius = 0
+                }
             }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Blur API not supported on this device despite OS version", e)
         }
         
         // Update window parameters if it's currently attached
@@ -265,7 +268,11 @@ class FloatingVolumeService : Service() {
         withContext(Dispatchers.Main) {
             layoutParams.x = position.x
             layoutParams.y = position.y
-            windowManager.addView(floatingMuteView, layoutParams)
+            try {
+                windowManager.addView(floatingMuteView, layoutParams)
+            } catch (e: Throwable) {
+                Log.e(TAG, "FATAL: Failed to add view to WindowManager. Ensure Overlay Permission is granted and Flags are supported.", e)
+            }
         }
     }
 
@@ -340,13 +347,18 @@ class FloatingVolumeService : Service() {
                 if (isFirstStart) {
                     isFirstStart = false
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(
-                            NOTIFICATION_ID,
-                            notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                        )
-                    } else {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            startForeground(
+                                NOTIFICATION_ID,
+                                notification,
+                                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                            )
+                        } else {
+                            startForeground(NOTIFICATION_ID, notification)
+                        }
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Failed to start foreground with modern API, falling back to legacy", e)
                         startForeground(NOTIFICATION_ID, notification)
                     }
                 } else {

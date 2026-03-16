@@ -28,9 +28,13 @@ class CoolSlider(
 
     private val progressView by lazy {
         View(context).apply {
-            val progressColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                context.getColor(android.R.color.system_accent1_500)
-            } else {
+            val progressColor = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    context.getColor(android.R.color.system_accent1_500)
+                } else {
+                    android.graphics.Color.parseColor("#2196F3")
+                }
+            } catch (e: Throwable) {
                 android.graphics.Color.parseColor("#2196F3")
             }
             
@@ -44,9 +48,13 @@ class CoolSlider(
     }
 
     init {
-        val trackBgColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            context.getColor(android.R.color.system_neutral2_800)
-        } else {
+        val trackBgColor = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_neutral2_800)
+            } else {
+                android.graphics.Color.parseColor("#44000000") // Translucent dark
+            }
+        } catch (e: Throwable) {
             android.graphics.Color.parseColor("#44000000") // Translucent dark
         }
         val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
@@ -122,9 +130,13 @@ class CoolSlider(
 
     fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
         // Update Track
-        val trackBgColor = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            context.getColor(android.R.color.system_neutral2_800)
-        } else {
+        val trackBgColor = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_neutral2_800)
+            } else {
+                android.graphics.Color.parseColor("#44000000") // Translucent dark
+            }
+        } catch (e: Throwable) {
             android.graphics.Color.parseColor("#44000000") // Translucent dark
         }
         val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
@@ -135,9 +147,13 @@ class CoolSlider(
         background = trackDrawable
 
         // Update Progress Bar
-        val progressColor = if (settings.enableDynamicColors && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            context.getColor(android.R.color.system_accent1_500)
-        } else {
+        val progressColor = try {
+            if (settings.enableDynamicColors && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_accent1_500)
+            } else {
+                android.graphics.Color.parseColor("#2196F3")
+            }
+        } catch (e: Throwable) {
             android.graphics.Color.parseColor("#2196F3")
         }
         val progressDrawable = android.graphics.drawable.GradientDrawable().apply {
