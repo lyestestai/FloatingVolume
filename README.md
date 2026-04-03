@@ -12,6 +12,7 @@
 
 ## What's New? 🔥
 
+- **v0.8.6:** Fixed silent rendering crashes on automotive Android systems (car tablets) faking newer OS versions by adding robust API fallbacks and removing mandatory hardware acceleration.
 - **v0.8.1:** Flutter UI Redesign! The main app interface has been completely modernized with Material 3 tabs (Appearance, Behavior, About). You can now customize the floating widget's blur, colors, and shape in real-time from the new Appearance tab!
 - **v0.8.0:** Visual Overhaul ("Woah Effect")! The floating widget now features Glassmorphism (blur behind), dynamic Material You colors that match your wallpaper on Android 12+, fluid scale and fade animations, and a modern pill-shaped design with ripple click effects!
 - **v0.7.0:** Added dynamic Media Controls (Previous, Play/Pause, Next) directly to the floating widget!

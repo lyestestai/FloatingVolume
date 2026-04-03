@@ -274,7 +274,7 @@ class FloatingVolumeView(
             setColor(android.graphics.Color.parseColor("#33000000")) // Semi-transparent black for glass effect
         }
         background = bgDrawable
-        clipToOutline = true
+        // clipToOutline = true // CRITICAL EXPLOIT FIX: Disabled because hardware acceleration is required to compute outlines on Android 8. If false, the view paints normally.
         
         addView(slider)
         addView(mediaControlsContainer)
@@ -289,10 +289,31 @@ class FloatingVolumeView(
         }
     }
 
+    private fun areAnimationsEnabled(): Boolean {
+        return try {
+            val scale = android.provider.Settings.Global.getFloat(
+                context.contentResolver,
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+                1.0f
+            )
+            scale > 0f
+        } catch (e: Exception) {
+            true // assume enabled
+        }
+    }
+
     fun showAnimated() {
         if (visibility == VISIBLE && alpha == 1f) return
         animate().cancel()
         visibility = VISIBLE
+        
+        if (!areAnimationsEnabled()) {
+            alpha = 1f
+            scaleX = 1f
+            scaleY = 1f
+            return
+        }
+
         alpha = 0f
         scaleX = 0.8f
         scaleY = 0.8f
@@ -324,6 +345,13 @@ class FloatingVolumeView(
 
     fun hideAnimated() {
         animate().cancel()
+        
+        if (!areAnimationsEnabled()) {
+            visibility = GONE
+            alpha = 0f
+            return
+        }
+
         animate()
             .alpha(0f)
             .scaleX(0.8f)

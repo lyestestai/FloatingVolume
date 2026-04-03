@@ -158,9 +158,6 @@ class FloatingVolumeService : Service() {
                 LayoutParams.TYPE_PHONE
             },
             LayoutParams.FLAG_NOT_FOCUSABLE or
-            LayoutParams.FLAG_NOT_TOUCH_MODAL or
-            LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            LayoutParams.FLAG_LAYOUT_NO_LIMITS or
             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) LayoutParams.FLAG_BLUR_BEHIND else 0),
             PixelFormat.TRANSLUCENT
         )
