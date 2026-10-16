@@ -36,8 +36,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 3
-        versionName = "0.0.3"
+        versionCode = 99
+        versionName = "0.9.9"
     }
     signingConfigs {
         create("release") {
@@ -52,9 +52,17 @@ android {
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "FloatingVolume-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
     
@@ -67,10 +75,24 @@ android {
         // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
-    
     ndkVersion = "27.0.12077973"
+
+    lint {
+        checkReleaseBuilds = false
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+tasks.configureEach {
+    if (
+        name.contains("extractReleaseNativeSymbolTables") ||
+        name.contains("extractNativeDebugMetadata", ignoreCase = true) ||
+        name.contains("CMake", ignoreCase = true) ||
+        name.contains("externalNativeBuild", ignoreCase = true)
+    ) {
+        enabled = false
+    }
 }

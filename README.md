@@ -9,6 +9,18 @@
 </p>
 
 
+
+## What's New? 🔥
+
+- **v0.9.9:** **Bulletproof Auto-Start for Android 8+ Automotive Head-Units!** Overhauled the auto-start engine for car head-units (including Chinese Android 8 Oreo head-units spoofing Android 12): exported `BootReceiver` with full MCU wakeup/ACC ON broadcast support, removed the `last_service_state` shutdown deadlock, implemented a dual-stage startup (immediate synchronous `startForeground()` with internal coroutine delay + monotonic `ELAPSED_REALTIME_WAKEUP` safety-net alarm immune to GPS clock jumps), and enforced synchronous `.commit()` preference writes.
+- **v0.9.8:** **Auto-Start UI & Diagnostics Conclusion!** Added a full configuration UI for the Auto-Start background service, allowing you to set a custom boot delay (10-60s) directly from the app to comply with Android 12+ foreground limitations. Concluded the Automotive OS diagnostic tests, proving that GPS "volume stuck at 0" errors are caused by Android's native *Do Not Disturb (DND)* state isolating the `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE` channel.
+
+- **v0.9.2-basic:** Automotive Head-Unit Edition featuring the **Multi-Channel Toggle**! You can now explicitly force the volume slider to control specific internal channels (`Music`, `Alarms/Nav`, `Ringtones`, or `Calls`) by tapping the interactive icon above the slider. Hardware-dependent animations have been removed to prevent graphic driver crashes on older tablets, and non-linear volume mapping ensures precise adjustments while driving.
+- **v0.8.1:** Flutter UI Redesign! The main app interface has been completely modernized with Material 3 tabs (Appearance, Behavior, About). You can now customize the floating widget's blur, colors, and shape in real-time from the new Appearance tab!
+- **v0.8.0:** Visual Overhaul ("Woah Effect")! The floating widget now features Glassmorphism (blur behind), dynamic Material You colors that match your wallpaper on Android 12+, fluid scale and fade animations, and a modern pill-shaped design with ripple click effects!
+- **v0.7.0:** Added dynamic Media Controls (Previous, Play/Pause, Next) directly to the floating widget!
+- **v0.6.1:** Fixed an issue where sound adjustments stopped working when closing the app. Fixed the background auto-start option not triggering after a device reboot on Android 12+.
+
 ## Get it
 
 F-Droid is the official and recommend way to get Floating Volume:
@@ -39,6 +51,43 @@ F-Droid takes a while to publish new versions, if you want to get latest version
     </tr>
 </table>
 
+
+## Features
+
+- ✨ **Premium Visuals** (NEW v0.8.0) - Glassmorphism, Material You dynamic colors, and fluid scale animations!
+- 🎵 **Floating volume control** - Draggable volume slider accessible from any app
+- ⏯️ **Media controls** (NEW v0.7.0) - Play, pause, skip tracks right from the widget globally
+- 🔊 **Smart audio detection** - Automatically adjusts to active audio stream (calls, media, alarms, notifications)
+- 📱 **Repositionable widget** - Drag and place anywhere on screen
+- 🔔 **Persistent notification** - Quick access controls (Stop, Show/Hide)
+- **🚀 Auto-start on boot** (NEW v0.6.0)
+  - Configurable startup delay (0-30 seconds)
+  - Restore previous service state option
+- **📋 Crash logs management** (NEW v0.6.0)
+  - Accessible log directory
+  - Export and share logs as ZIP
+  - Automatic rotation (max 5 MB per file)
+  - View statistics (file count, size, dates)
+
+### Media Controls (v0.7.0)
+When adjusting your media volume, the widget now intelligently displays playback controls. You can play, pause, and skip tracks seamlessly without leaving your current app or game!
+<p align="center">
+  <img src="images/media_controls.gif" alt="Media Controls Demo" width="250px"/>
+</p>
+
+## Permissions
+
+Required permissions and their purpose:
+
+| Permission | Purpose |
+|------------|---------|
+| `SYSTEM_ALERT_WINDOW` | Display floating widget over other apps |
+| `BIND_NOTIFICATION_LISTENER_SERVICE` | Required to detect and control active media sessions (NEW v0.7.0) |
+| `MODIFY_AUDIO_SETTINGS` | Control system volume levels |
+| `FOREGROUND_SERVICE` | Keep service running in background |
+| `POST_NOTIFICATIONS` | Show persistent notification |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Prevent battery optimization from killing service |
+| `RECEIVE_BOOT_COMPLETED` | Auto-start service on device boot |
 
 ## Build
 

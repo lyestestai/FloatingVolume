@@ -102,11 +102,13 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+            
+            const AutoStartSettingsWidget(),
 
             ListTile(
               title: const Text("Version"),
-              trailing: Text("v0.0.3"),
-              subtitle: Text("11 Oct 2025"),
+              trailing: const Text("v0.9.9"),
+              subtitle: const Text("16 Oct 2026"),
             ),
             ListTile(
               title: const Text("Created by @mkalmousli"),
@@ -216,6 +218,117 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class AutoStartSettingsWidget extends StatefulWidget {
+  const AutoStartSettingsWidget({super.key});
+
+  @override
+  State<AutoStartSettingsWidget> createState() => _AutoStartSettingsWidgetState();
+}
+
+class _AutoStartSettingsWidgetState extends State<AutoStartSettingsWidget> {
+  bool _isLoading = true;
+  bool _isEnabled = false;
+  int _delayMs = 10000;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final enabled = await nativeApi.getAutoStartEnabled();
+      final delay = await nativeApi.getAutoStartDelay();
+      int clampedDelay = delay;
+      if (clampedDelay < 10000) clampedDelay = 10000;
+      if (clampedDelay > 60000) clampedDelay = 60000;
+
+      if (clampedDelay != delay) {
+        await nativeApi.setAutoStartDelay(clampedDelay);
+      }
+
+      if (mounted) {
+        setState(() {
+          _isEnabled = enabled;
+          _delayMs = clampedDelay;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _updateEnabled(bool val) async {
+    setState(() => _isEnabled = val);
+    await nativeApi.setAutoStartEnabled(val);
+    if (val) {
+      await nativeApi.setAutoStartDelay(_delayMs);
+    }
+  }
+
+  Future<void> _updateDelay(double val) async {
+    final newDelay = val.toInt().clamp(10000, 60000);
+    setState(() => _delayMs = newDelay);
+    await nativeApi.setAutoStartDelay(newDelay);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: const Text("Démarrage Automatique (Auto-Start)"),
+          subtitle: const Text("Lancer la bulle au démarrage de la voiture"),
+          value: _isEnabled,
+          onChanged: _updateEnabled,
+          secondary: const Icon(Icons.rocket_launch),
+        ),
+        if (_isEnabled)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Délai avant lancement : ${(_delayMs / 1000).round()} secondes",
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                Slider(
+                  value: _delayMs.toDouble(),
+                  min: 10000,
+                  max: 60000,
+                  divisions: 50,
+                  label: "${(_delayMs / 1000).round()} s",
+                  onChanged: (val) {
+                    setState(() => _delayMs = val.toInt());
+                  },
+                  onChangeEnd: _updateDelay,
+                ),
+                const Text(
+                  "Un délai est recommandé pour laisser le système Android de la voiture démarrer ses services audio avant d'afficher la bulle.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        const Divider(),
+      ],
     );
   }
 }

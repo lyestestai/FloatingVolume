@@ -28,13 +28,44 @@ class CoolSlider(
 
     private val progressView by lazy {
         View(context).apply {
-            setBackgroundColor(
-                0xFF4CAF50.toInt()
-            )
+            val progressColor = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    context.getColor(android.R.color.system_accent1_500)
+                } else {
+                    android.graphics.Color.parseColor("#2196F3")
+                }
+            } catch (e: Throwable) {
+                android.graphics.Color.parseColor("#2196F3")
+            }
+            
+            val drawable = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 100f // Fully rounded ends
+                setColor(progressColor)
+            }
+            background = drawable
         }
     }
 
+    var onUserProgressChanged: ((Int) -> Unit)? = null
+
     init {
+        val trackBgColor = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_neutral2_800)
+            } else {
+                android.graphics.Color.parseColor("#44000000") // Translucent dark
+            }
+        } catch (e: Throwable) {
+            android.graphics.Color.parseColor("#44000000") // Translucent dark
+        }
+        val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = 100f
+            setColor(trackBgColor)
+        }
+        background = trackDrawable
+        
         addView(progressView)
         gravity = Gravity.BOTTOM
 
@@ -55,6 +86,7 @@ class CoolSlider(
 
                     val newVal = (min.value + fraction * (max.value - min.value)).roundToInt()
                     value.value = newVal
+                    onUserProgressChanged?.invoke(newVal)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -97,6 +129,43 @@ class CoolSlider(
                 width = LayoutParams.MATCH_PARENT
             }
         }
+    }
+
+    fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
+        // Update Track
+        val trackBgColor = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_neutral2_800)
+            } else {
+                android.graphics.Color.parseColor("#44000000") // Translucent dark
+            }
+        } catch (e: Throwable) {
+            android.graphics.Color.parseColor("#44000000") // Translucent dark
+        }
+        val trackDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = settings.cornerRadius.toFloat()
+            setColor(trackBgColor)
+        }
+        background = trackDrawable
+
+        // Update Progress Bar
+        val progressColor = try {
+            if (settings.enableDynamicColors && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getColor(android.R.color.system_accent1_500)
+            } else {
+                android.graphics.Color.parseColor("#2196F3")
+            }
+        } catch (e: Throwable) {
+            android.graphics.Color.parseColor("#2196F3")
+        }
+        val progressDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = settings.cornerRadius.toFloat()
+            setColor(progressColor)
+        }
+        progressView.background = progressDrawable
+        progressView.alpha = settings.sliderOpacity.toFloat()
     }
 
     override fun onDetachedFromWindow() {

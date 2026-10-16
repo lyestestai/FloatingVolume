@@ -60,6 +60,94 @@ abstract class NativeApi {
     String message, [
     ToastDuration duration = ToastDuration.short,
   ]);
+
+  // ========== Auto-start Configuration ==========
+
+  ///
+  /// Configure si le service doit redémarrer automatiquement au boot
+  ///
+  @async
+  void setAutoStartEnabled(bool enabled);
+
+  ///
+  /// Récupère l'état de l'auto-start
+  ///
+  @async
+  bool getAutoStartEnabled();
+
+  ///
+  /// Définit le délai avant démarrage automatique (en millisecondes)
+  ///
+  @async
+  void setAutoStartDelay(int delayMs);
+
+  ///
+  /// Récupère le délai d'auto-start (en millisecondes)
+  ///
+  @async
+  int getAutoStartDelay();
+
+  ///
+  /// Configure si l'état du service doit être restauré après boot
+  ///
+  @async
+  void setRestoreServiceState(bool enabled);
+
+  ///
+  /// Récupère l'état du restore
+  ///
+  @async
+  bool getRestoreServiceState();
+
+  // ========== Logs Management ==========
+
+  ///
+  /// Exporte les logs et retourne l'Intent de partage
+  ///
+  @async
+  void exportLogsAndShare();
+
+  ///
+  /// Efface tous les logs
+  ///
+  @async
+  void clearAllLogs();
+
+  ///
+  /// Récupère les statistiques des logs
+  ///
+  @async
+  LogStatsData getLogStats();
+
+  // ========== Media Controls ==========
+
+  @async
+  bool hasNotificationAccess();
+
+  @async
+  void requestNotificationAccess();
 }
 
 enum ToastDuration { short, long }
+
+/// Données des stats de logs
+class LogStatsData {
+  final int totalFiles;
+  final int totalSizeBytes;
+  final String? oldestLogDate;
+  final String? newestLogDate;
+
+  LogStatsData({
+    required this.totalFiles,
+    required this.totalSizeBytes,
+    this.oldestLogDate,
+    this.newestLogDate,
+  });
+}
+
+/// Action à envoyer au lecteur multimédia ("play", "pause", "next", "prev")
+@HostApi()
+abstract class MediaApi {
+  @async
+  void sendMediaAction(String action);
+}

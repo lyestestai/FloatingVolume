@@ -68,7 +68,7 @@ object PositionBloc {
             getSavedPositionForOrientation(context, orientation)
         }
 
-        private suspend fun savePositionForOrientation(
+        private fun savePositionForOrientation(
             context: Context,
             orientation: Orientation,
             position: Position
@@ -76,12 +76,14 @@ object PositionBloc {
             val (lastXPrefKey, lastYPrefKey) =
                 getSharedPreferenceKeysForOrientation(orientation)
 
-            newInMain {
+            try {
                 context.sharedPrefs.edit()
                     .putInt(lastXPrefKey, position.x)
                     .putInt(lastYPrefKey, position.y)
-                    .apply()
-            }.join()
+                    .commit()
+            } catch (e: Throwable) {
+                Log.e("PositionBloc", "Failed to save position", e)
+            }
 
             _state.value = State.Initialized(position)
         }

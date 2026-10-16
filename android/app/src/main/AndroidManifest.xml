@@ -6,8 +6,12 @@
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Auto-start on boot & head-unit wakeup -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
 
     <application
@@ -16,13 +20,62 @@
         android:icon="@drawable/logo">
 
 
-        <receiver android:name=".NotificationBroadcastReceiver" />
+        <receiver
+            android:name=".NotificationBroadcastReceiver"
+            android:exported="false" />
+
+        <!-- Boot & MCU Wakeup receiver for auto-start functionality (Android 8+ Head-Units) -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <!-- Chinese Head-Unit MCU Wakeup / ACC ON broadcasts -->
+                <action android:name="com.syu.ms.action.ACC_ON" />
+                <action android:name="com.tw.action.ACC_ON" />
+                <action android:name="com.glsx.boot.ACCON" />
+                <action android:name="com.microntek.bootcheck" />
+                <action android:name="autochips.intent.action.QB_POWERON" />
+                <!-- Internal delayed start safety-net alarm -->
+                <action android:name="com.github.mkalmousli.floating_volume.START_SERVICE_DELAYED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- FileProvider for secure file sharing (logs export) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <service
             android:name=".FloatingVolumeService"
             android:enabled="true"
             android:exported="false"
+            android:stopWithTask="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <service
+            android:name=".media.FloatingNotificationListener"
+            android:label="Floating Volume Media Control"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".MainActivity"
@@ -58,6 +111,9 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.MEDIA_BUTTON" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

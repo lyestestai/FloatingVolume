@@ -124,18 +124,6 @@ class Bloc extends a.Bloc<e.Event, s.State> {
               ),
             ),
           ]);
-
-          _createPermissionStream(Permission.systemAlertWindow).listen((
-            status,
-          ) {
-            emit(
-              state.copyWith(
-                overlayPermission: state.overlayPermission.copyWith(
-                  status: status,
-                ),
-              ),
-            );
-          });
           break;
 
         case e.Event.requestOverlayPermission:
