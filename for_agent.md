@@ -1,4 +1,4 @@
-# Journal de Mémoire Agent IA — Floating Volume (`v0.9.9+99`)
+# Journal de Mémoire Agent IA — Floating Volume (`v0.9.10+100`)
 
 Ce fichier constitue la mémoire technique permanente destinée aux agents IA / LLM intervenant sur le projet **Floating Volume (Automotive Head-Unit Edition)**. Il doit être lu au début de chaque session et mis à jour systématiquement à chaque release.
 
@@ -43,9 +43,9 @@ Ce fichier constitue la mémoire technique permanente destinée aux agents IA / 
 
 ---
 
-## 3. Historique Technique des Réalisations (`v0.9.8` $\rightarrow$ `v0.9.9+99`)
+## 3. Historique Technique des Réalisations (`v0.9.8` $\rightarrow$ `v0.9.10+100`)
 
-### Ce qui a été corrigé et réalisé dans la `v0.9.9+99` (Réparation Complète de l'Auto-Start)
+### A. Ce qui a été corrigé et réalisé dans la `v0.9.9+99` (Réparation Complète de l'Auto-Start)
 Suite au constat que le démarrage automatique ne fonctionnait pas en `v0.9.8`, un audit complet du code a révélé **6 causes cumulées**, toutes résolues dans la `v0.9.9+99` :
 
 1. **Manifest `BootReceiver` (`AndroidManifest.xml`) :**
@@ -72,3 +72,22 @@ Suite au constat que le démarrage automatique ne fonctionnait pas en `v0.9.8`, 
    - Remplacement de `DEFAULT_DELAY_MS = 3000L` par `10_000L` (borné `10_000L..60_000L`).
    - Utilisation de `.commit()` au lieu de `.apply()` sur le thread IO pour garantir l'écriture physique (`fsync`) sur la mémoire flash de l'autoradio avant une coupure franche du contact.
    - Suppression du flag `FLAG_BLUR_BEHIND` par défaut dans `FloatingVolumeService.layoutParams` et nettoyage des fuites de `CoroutineScope` (`SupervisorJob` unifié).
+
+### B. Ce qui a été réalisé dans la `v0.9.10+100` (Fenêtre de Diagnostic & Journalisation Embarquée)
+Pour analyser le comportement exact de l'autoradio au démarrage (distinguer un vrai Cold Boot d'une veille MCU, voir quels broadcasts sont reçus et vérifier l'état des permissions) sans avoir besoin de brancher un PC en ADB dans la voiture :
+
+1. **Journalisation persistante dès la milliseconde 0 du boot (`CrashHandler.kt`) :**
+   - Ajout de `CrashHandler.logEvent(ctx, tag, message)` qui écrit de manière synchronisée dans le stockage interne privé de l'application (`ctx.filesDir/logs/diagnostic_log_current.txt`), disponible immédiatement dès `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED` avant même que la partition `/sdcard/` ne soit montée.
+   - Chaque ligne de log inclut à la fois l'horodatage système (`yyyy-MM-dd HH:mm:ss.SSS`) et l'uptime monotone depuis le dernier Cold Boot (`[up:Xs]`), permettant de détecter immédiatement un saut d'horloge GPS ou de savoir si le poste sort d'une veille MCU (`up` élevé) ou d'un vrai redémarrage (`up` faible).
+   - Instrumentation complète de `BootReceiver.kt`, `FloatingVolumeService.kt` et `NativeApiImpl.kt`.
+
+2. **En-tête de Diagnostic Matériel Temps Réel (`CrashHandler.getFullDiagnosticReport`) :**
+   - Génère automatiquement en tête du journal : la version Android affichée (`Build.VERSION.RELEASE`) vs le vrai niveau d'API (`Build.VERSION.SDK_INT`), le modèle matériel/carte mère (`Manufacturer`, `Model`, `Device`, `Board`, `Hardware`), l'uptime exact depuis le dernier Cold Boot, l'état des permissions (`Settings.canDrawOverlays`, `isIgnoringBatteryOptimizations`), l'état des `SharedPreferences` et l'état actif de `FloatingVolumeService`.
+
+3. **Fenêtre de Logs pliable dans `HomeScreen` (`DiagnosticLogsWidget` dans `lib/src/screens/home.dart` & contrat Pigeon `pigeons/native_api.dart`) :**
+   - Ajout d'un interrupteur `SwitchListTile` *"Journal de diagnostic (Logs)"* persisté via `setLogsEnabled` / `getLogsEnabled`.
+   - Lorsqu'il est activé, affiche directement un terminal déroulant (`SelectableText` monospace) accompagné de 5 boutons d'action :
+     - **Copier** : copie l'intégralité du rapport dans le presse-papiers Android.
+     - **Partager / Email** : ouvre le sélecteur de partage Android (`Intent.ACTION_SEND` `text/plain` avec le rapport dans `Intent.EXTRA_TEXT`) compatible avec les clients email et éditeurs de texte.
+     - **Enregistrer (`Download/`)** : écrit directement un fichier `FloatingVolume_Log_<timestamp>.txt` dans `/storage/emulated/0/Download/` sur le disque de l'autoradio.
+     - **Actualiser** & **Effacer**.

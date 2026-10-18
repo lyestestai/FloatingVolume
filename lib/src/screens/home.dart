@@ -2,6 +2,7 @@ import 'package:floating_volume/src/ext.dart';
 import 'package:floating_volume/src/single.dart';
 import 'package:floating_volume/src/widgets/cool_switch.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
@@ -104,11 +105,12 @@ class HomeScreen extends StatelessWidget {
             ),
             
             const AutoStartSettingsWidget(),
+            const DiagnosticLogsWidget(),
 
             ListTile(
               title: const Text("Version"),
-              trailing: const Text("v0.9.9"),
-              subtitle: const Text("16 Oct 2026"),
+              trailing: const Text("v0.9.10"),
+              subtitle: const Text("18 Oct 2026"),
             ),
             ListTile(
               title: const Text("Created by @mkalmousli"),
@@ -332,3 +334,218 @@ class _AutoStartSettingsWidgetState extends State<AutoStartSettingsWidget> {
     );
   }
 }
+
+class DiagnosticLogsWidget extends StatefulWidget {
+  const DiagnosticLogsWidget({super.key});
+
+  @override
+  State<DiagnosticLogsWidget> createState() => _DiagnosticLogsWidgetState();
+}
+
+class _DiagnosticLogsWidgetState extends State<DiagnosticLogsWidget> {
+  bool _isLoading = true;
+  bool _isEnabled = false;
+  bool _isRefreshing = false;
+  String _logsContent = "Chargement du journal de diagnostic...";
+
+  @override
+  void initState() {
+    super.initState();
+    _initLogsState();
+  }
+
+  Future<void> _initLogsState() async {
+    try {
+      final enabled = await nativeApi.getLogsEnabled();
+      String content = "";
+      if (enabled) {
+        content = await nativeApi.getLogsContent();
+      }
+      if (mounted) {
+        setState(() {
+          _isEnabled = enabled;
+          if (enabled) {
+            _logsContent = content;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _logsContent = "Erreur lors du chargement des logs : $e";
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleLogsEnabled(bool enabled) async {
+    setState(() => _isEnabled = enabled);
+    try {
+      await nativeApi.setLogsEnabled(enabled);
+      if (enabled) {
+        await _refreshLogs();
+      }
+    } catch (e) {
+      await nativeApi.showToast("Erreur: $e");
+    }
+  }
+
+  Future<void> _refreshLogs() async {
+    if (mounted) {
+      setState(() => _isRefreshing = true);
+    }
+    try {
+      final content = await nativeApi.getLogsContent();
+      if (mounted) {
+        setState(() {
+          _logsContent = content;
+          _isRefreshing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _logsContent = "Impossible de lire les logs : $e";
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _copyLogs() async {
+    await _refreshLogs();
+    await Clipboard.setData(ClipboardData(text: _logsContent));
+    await nativeApi.showToast("Journal copié dans le presse-papiers !");
+  }
+
+  Future<void> _shareLogs() async {
+    try {
+      await nativeApi.exportLogsAndShare();
+    } catch (e) {
+      await nativeApi.showToast("Erreur lors du partage : $e");
+    }
+  }
+
+  Future<void> _saveToDisk() async {
+    try {
+      final savedPath = await nativeApi.saveLogsToDisk();
+      await _refreshLogs();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Fichier enregistré : $savedPath"),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      await nativeApi.showToast("Enregistré dans : $savedPath");
+    } catch (e) {
+      await nativeApi.showToast("Erreur d'enregistrement : $e");
+    }
+  }
+
+  Future<void> _clearLogs() async {
+    try {
+      await nativeApi.clearAllLogs();
+      await _refreshLogs();
+      await nativeApi.showToast("Journal effacé.");
+    } catch (e) {
+      await nativeApi.showToast("Erreur lors de l'effacement : $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: const Text("Journal de diagnostic (Logs)"),
+          subtitle: const Text(
+            "Afficher la fenêtre de logs (Auto-Start, réveil MCU, permissions)",
+          ),
+          value: _isEnabled,
+          onChanged: _toggleLogsEnabled,
+          secondary: const Icon(Icons.terminal),
+        ),
+        if (_isEnabled)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _copyLogs,
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text("Copier"),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _shareLogs,
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text("Partager / Email"),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _saveToDisk,
+                      icon: const Icon(Icons.save_alt, size: 18),
+                      label: const Text("Enregistrer (Download/)"),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isRefreshing ? null : _refreshLogs,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text("Actualiser"),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _clearLogs,
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text("Effacer"),
+                    ),
+                  ],
+                ),
+                const Gap(10),
+                Container(
+                  height: 260,
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF121212),
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: Colors.grey.shade700),
+                  ),
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        _logsContent,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11.5,
+                          color: Color(0xFF80FF80),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const Gap(6),
+                const Text(
+                  "Astuce : Cliquez sur 'Enregistrer (Download/)' pour sauvegarder un fichier .txt directement dans le dossier Téléchargements de l'autoradio, ou sur 'Partager / Email' pour l'envoyer.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        const Divider(),
+      ],
+    );
+  }
+}
+

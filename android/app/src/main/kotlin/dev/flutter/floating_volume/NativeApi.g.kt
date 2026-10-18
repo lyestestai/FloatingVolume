@@ -246,6 +246,31 @@ interface NativeApi {
   fun getRestoreServiceState(callback: (Result<Boolean>) -> Unit)
   /**
    *
+   * Active ou désactive la fenêtre et la collecte des logs de diagnostic
+   *
+   */
+  fun setLogsEnabled(enabled: Boolean, callback: (Result<Unit>) -> Unit)
+  /**
+   *
+   * Récupère l'état d'activation de la fenêtre de logs
+   *
+   */
+  fun getLogsEnabled(callback: (Result<Boolean>) -> Unit)
+  /**
+   *
+   * Récupère le contenu textuel complet des logs (en-tête diagnostic + historique)
+   *
+   */
+  fun getLogsContent(callback: (Result<String>) -> Unit)
+  /**
+   *
+   * Enregistre les logs dans un fichier texte (.txt) sur le disque
+   * et retourne le chemin complet du fichier enregistré
+   *
+   */
+  fun saveLogsToDisk(callback: (Result<String>) -> Unit)
+  /**
+   *
    * Exporte les logs et retourne l'Intent de partage
    *
    */
@@ -498,6 +523,79 @@ interface NativeApi {
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             api.getRestoreServiceState{ result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.setLogsEnabled$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val enabledArg = args[0] as Boolean
+            api.setLogsEnabled(enabledArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(NativeApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getLogsEnabled$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getLogsEnabled{ result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.getLogsContent$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getLogsContent{ result: Result<String> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(NativeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(NativeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.floating_volume.NativeApi.saveLogsToDisk$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.saveLogsToDisk{ result: Result<String> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(NativeApiPigeonUtils.wrapError(error))

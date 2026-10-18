@@ -12,6 +12,7 @@
 
 ## What's New? 🔥
 
+- **v0.9.10:** **In-App Diagnostic Log Window & Export!** Added an activatable/deactivatable diagnostic log panel directly in the settings screen to inspect real-time hardware info (real `SDK_INT` vs spoofed Android version, monotonic uptime since Cold Boot, permissions, and `SharedPreferences`) and trace every `BootReceiver` / `FloatingVolumeService` event, with one-tap buttons to **Copy**, **Share via Email / Text Editor**, or **Save `.txt` directly to `Download/`**.
 - **v0.9.9:** **Bulletproof Auto-Start for Android 8+ Automotive Head-Units!** Overhauled the auto-start engine for car head-units (including Chinese Android 8 Oreo head-units spoofing Android 12): exported `BootReceiver` with full MCU wakeup/ACC ON broadcast support, removed the `last_service_state` shutdown deadlock, implemented a dual-stage startup (immediate synchronous `startForeground()` with internal coroutine delay + monotonic `ELAPSED_REALTIME_WAKEUP` safety-net alarm immune to GPS clock jumps), and enforced synchronous `.commit()` preference writes.
 - **v0.9.8:** **Auto-Start UI & Diagnostics Conclusion!** Added a full configuration UI for the Auto-Start background service, allowing you to set a custom boot delay (10-60s) directly from the app to comply with Android 12+ foreground limitations. Concluded the Automotive OS diagnostic tests, proving that GPS "volume stuck at 0" errors are caused by Android's native *Do Not Disturb (DND)* state isolating the `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE` channel.
 

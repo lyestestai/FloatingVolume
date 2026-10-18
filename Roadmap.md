@@ -19,7 +19,15 @@
 - [x] Création et mise à jour de `architecture.md`, `for_agent.md`, `Roadmap.md`, `CHANGELOG.md`, `README.md` et `HANDOFF.md`.
 - [x] Compilation et livraison de `APK/FloatingVolume-v0.9.9-basic.apk`.
 
-## Phase 3 : Évolutions Futures (Backlog)
-- [ ] Validation terrain sur l'autoradio du démarrage automatique en Cold Boot et en sortie de veille ACC ON (`v0.9.9`).
+## Phase 3 : Fenêtre de Diagnostic Embarquée & Export des Logs (`v0.9.10+100`)
+- [x] Journalisation persistante dans le stockage interne (`diagnostic_log_current.txt`) fonctionnelle dès la milliseconde 0 du boot (`BOOT_COMPLETED` / `ACC_ON`).
+- [x] En-tête de rapport matériel temps réel (`SDK_INT` réel vs version affichée, uptime monotone `elapsedRealtime` pour distinguer Cold Boot et veille MCU, permissions, préférences).
+- [x] Panneau pliable `DiagnosticLogsWidget` activable/désactivable dans l'écran d'accueil Flutter (`HomeScreen`).
+- [x] Actions **Copier** (presse-papiers), **Partager / Email** (`ACTION_SEND` `text/plain`), **Enregistrer (`Download/`)** (`.txt` sur le disque), **Actualiser** et **Effacer**.
+- [x] Compilation et livraison de `APK/FloatingVolume-v0.9.10-basic.apk`.
+
+## Phase 4 : Évolutions Futures (Backlog)
+- [ ] Validation terrain sur l'autoradio du démarrage automatique en Cold Boot et en sortie de veille ACC ON (`v0.9.10`).
 - [ ] Option permettant de choisir quels flux audio inclure dans la rotation du bouton canal (masquer les canaux non utilisés après diagnostic).
 - [ ] Mémorisation du dernier canal audio sélectionné dans `SharedPreferences`.
+

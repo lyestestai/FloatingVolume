@@ -1,10 +1,10 @@
-# Architecture Technique — Floating Volume (`v0.9.9+99`)
+# Architecture Technique — Floating Volume (`v0.9.10+100`)
 
 > **Cible Matérielle :** Autoradio / Tablette embarquée sous **Android 8.0/8.1 Oreo (API 26/27)** (souvent masqué en « Android 12+ » par les firmwares MCU chinois type FYT, Topway, MTCD, XYAuto) ainsi qu'Android Automotive OS (AAOS) jusqu'à Android 15 (`targetSdk = 35`).
 
 Ce document décrit l'architecture complète de **Floating Volume**, structurée en deux chapitres distincts :
-1. **Chapitre 1 : Architecture Flutter & Contrats Pigeon** (Interface de configuration et pont IPC typé).
-2. **Chapitre 2 : Architecture Service Natif Android / Overlay & AudioManager** (Moteur autonome en arrière-plan, Auto-Start blindé et contrôle matériel du son).
+1. **Chapitre 1 : Architecture Flutter & Contrats Pigeon** (Interface de configuration, fenêtre de diagnostic embarquée et pont IPC typé).
+2. **Chapitre 2 : Architecture Service Natif Android / Overlay & AudioManager** (Moteur autonome en arrière-plan, Auto-Start blindé, journalisation persistante et contrôle matériel du son).
 
 ---
 
@@ -13,11 +13,12 @@ Ce document décrit l'architecture complète de **Floating Volume**, structurée
 ### 1.1. Rôle de la couche Flutter (`lib/`)
 Dans la philosophie embarquée **Low-GPU / Automotive**, le moteur Flutter n'est utilisé **que pour l'écran de configuration ponctuel** (`MainActivity`). Dès que la bulle flottante est active, l'application Flutter peut être fermée : le service natif Kotlin tourne de manière 100 % autonome sans consommer de ressources GPU Flutter.
 
-L'interface Flutter s'articule autour de trois `Bloc` principaux (`flutter_bloc`) et d'un widget de configuration d'Auto-Start :
+L'interface Flutter s'articule autour de trois `Bloc` principaux (`flutter_bloc`) et de deux widgets embarqués sur `HomeScreen` :
 - **`permissions/bloc.dart`** : Vérifie et demande les 3 permissions critiques (`SYSTEM_ALERT_WINDOW`, `POST_NOTIFICATIONS`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`).
 - **`status/bloc.dart`** : Écoute en temps réel les `EventChannel` Pigeon (`serviceStatus` et `floatingVolumeVisibility`) et déclenche `nativeApi.startService()` / `nativeApi.stopService()`.
 - **`theme/bloc.dart`** : Gère le thème de l'interface de paramétrage (`Light`, `Dark`, `System`) persisté via `rx_shared_preferences`.
 - **`AutoStartSettingsWidget` (`lib/src/screens/home.dart`)** : Pilote l'activation du démarrage automatique (`setAutoStartEnabled`) et le délai avant affichage de la bulle (`setAutoStartDelay`, borné strictement entre **10s et 60s**, soit `10000 ms` à `60000 ms`).
+- **`DiagnosticLogsWidget` (`lib/src/screens/home.dart`)** : Fenêtre de diagnostic activable/désactivable (`setLogsEnabled`) affichant l'en-tête matériel réel de l'autoradio (`SDK_INT` réel vs version affichée, uptime monotone `elapsedRealtime`, état des permissions et préférences) ainsi que l'historique horodaté des événements de boot/service, avec boutons **Copier**, **Partager / Email** (`Intent.ACTION_SEND`), **Enregistrer (`Download/`)**, **Actualiser** et **Effacer**.
 
 ### 1.2. Diagramme de flux Flutter ↔ Pigeon ↔ Kotlin
 
@@ -26,6 +27,7 @@ flowchart LR
     subgraph Flutter["Couche UI Configuration (Flutter / Dart)"]
         HS["HomeScreen\n(lib/src/screens/home.dart)"]
         ASW["AutoStartSettingsWidget\n(Switch + Slider 10s-60s)"]
+        DLW["DiagnosticLogsWidget\n(Fenêtre Logs + Copier/Partager/Sauver)"]
         SB["StatusBloc\n(bloc/status/bloc.dart)"]
         PB["PermissionsBloc\n(bloc/permissions/bloc.dart)"]
     end
@@ -38,6 +40,7 @@ flowchart LR
 
     subgraph Native["Couche Native Android (Kotlin)"]
         NAI["NativeApiImpl\n(pigeon_impl/NativeApiImpl.kt)"]
+        CH["CrashHandler\n(Rapport Diagnostic & Logs Internes)"]
         SSSH["ServiceStatusStreamHandlerImpl"]
         FVSH["FloatingVolumeVisibilityStreamHandlerImpl"]
         SP[("SharedPreferences\nfloating_volume_prefs\n(commit synchrone)")]
@@ -46,10 +49,13 @@ flowchart LR
     HS --> SB
     HS --> PB
     HS --> ASW
+    HS --> DLW
     SB -->|"startService / stopService\nshow / hide"| NA
     ASW -->|"get/setAutoStartEnabled\nget/setAutoStartDelay"| NA
+    DLW -->|"get/setLogsEnabled\ngetLogsContent / saveLogsToDisk\nexportLogsAndShare / clearAllLogs"| NA
     NA --> NAI
     NAI -->|"commit()"| SP
+    NAI --> CH
     SSSH -->|"Stream<bool>"| NE
     FVSH -->|"Stream<bool>"| NE
     NE --> SB
@@ -60,8 +66,8 @@ flowchart LR
 #### Méthodes exposées par `NativeApi` (`pigeons/native_api.dart`)
 | Méthode | Signature Dart | Rôle côté Android (`NativeApiImpl.kt`) |
 |---|---|---|
-| `startService()` | `Future<void>` | Définit `isStoppingIntentionally = false` et lance `FloatingVolumeService` via `startForegroundService()`. |
-| `stopService()` | `Future<void>` | Définit `isStoppingIntentionally = true` et arrête `FloatingVolumeService`. |
+| `startService()` | `Future<void>` | Définit `isStoppingIntentionally = false`, trace l'événement et lance `FloatingVolumeService` via `startForegroundService()`. |
+| `stopService()` | `Future<void>` | Définit `isStoppingIntentionally = true`, trace l'événement et arrête `FloatingVolumeService`. |
 | `showFloatingVolume()` | `Future<void>` | Émet `VisibilityBloc.Event.Show`. |
 | `hideFloatingVolume()` | `Future<void>` | Émet `VisibilityBloc.Event.Hide`. |
 | `setAutoStartEnabled(bool)` | `Future<void>` | Sauvegarde `auto_start_enabled` + garantit `auto_start_delay_ms` (`10000..60000`) avec `.commit()` synchrone. |
@@ -70,6 +76,12 @@ flowchart LR
 | `getAutoStartDelay()` | `Future<int>` | Lit `auto_start_delay_ms` (défaut `10000 ms`). |
 | `setRestoreServiceState(bool)` | `Future<void>` | Sauvegarde `restore_service_state` avec `.commit()`. |
 | `getRestoreServiceState()` | `Future<bool>` | Lit `restore_service_state`. |
+| `setLogsEnabled(bool)` | `Future<void>` | Active/désactive l'enregistrement et l'affichage de la fenêtre de logs (`logs_enabled` via `.commit()`). |
+| `getLogsEnabled()` | `Future<bool>` | Lit `logs_enabled` dans `floating_volume_prefs`. |
+| `getLogsContent()` | `Future<String>` | Génère l'en-tête système temps réel + les 300 dernières lignes de `diagnostic_log_current.txt`. |
+| `saveLogsToDisk()` | `Future<String>` | Écrit le rapport complet dans `/storage/emulated/0/Download/FloatingVolume_Log_<timestamp>.txt` et retourne le chemin. |
+| `exportLogsAndShare()` | `Future<void>` | Ouvre le sélecteur Android (`ACTION_SEND` `text/plain`) avec le rapport en texte brut (`EXTRA_TEXT`) pour Email / Éditeurs de texte. |
+| `clearAllLogs()` | `Future<void>` | Efface les fichiers de logs internes et externes. |
 
 #### Stockage `SharedPreferences`
 | Fichier XML | Clé | Type | Défaut | Description |
@@ -77,6 +89,7 @@ flowchart LR
 | `floating_volume_prefs` | `auto_start_enabled` | `Boolean` | `false` | Active le lancement automatique au démarrage / réveil MCU de la voiture. |
 | `floating_volume_prefs` | `auto_start_delay_ms` | `Long` | `10000L` | Délai (`10000` à `60000` ms) avant l'affichage de la bulle flottante. |
 | `floating_volume_prefs` | `last_service_state` | `Boolean` | `false` | État du service avant coupure (maintenu à `true` si tué par l'OS/MCU). |
+| `floating_volume_prefs` | `logs_enabled` | `Boolean` | `false` | État d'ouverture de la fenêtre de diagnostic dans l'écran d'accueil. |
 | `prefs` | `lastX_Portrait` / `lastY_Portrait` | `Int` | `0` | Coordonnées X/Y de la bulle en mode Portrait. |
 | `prefs` | `lastX_Landscape` / `lastY_Landscape` | `Int` | `0` | Coordonnées X/Y de la bulle en mode Paysage (Autoradio). |
 

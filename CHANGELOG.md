@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.10+100 (In-App Diagnostic Log Window & Export for Automotive Head-Units)
+* **Collapsible Diagnostic Log Window (`lib/src/screens/home.dart`)**: Added `DiagnosticLogsWidget` directly inside the Home Screen with an activatable/deactivatable toggle (*"Journal de diagnostic (Logs)"*) and a scrollable terminal view.
+* **Copy, Share (Email/Text Editor) & Save to Disk (`pigeons/native_api.dart`, `NativeApiImpl.kt`, `CrashHandler.kt`)**:
+  - **Copier**: Copies the full diagnostic report to the Android clipboard.
+  - **Partager / Email**: Launches Android's `ACTION_SEND` (`text/plain`) intent with the full diagnostic text in `EXTRA_TEXT` so email clients or text editor apps can send or save it directly.
+  - **Enregistrer (`Download/`)**: Writes `FloatingVolume_Log_<timestamp>.txt` directly into `/storage/emulated/0/Download/` on the head-unit's storage.
+  - **Actualiser & Effacer**: Refresh or clear the recorded diagnostic events at any time.
+* **Early-Boot Persistent Event Logger (`CrashHandler.kt`, `BootReceiver.kt`, `FloatingVolumeService.kt`)**: Added `CrashHandler.logEvent()` writing timestamped + monotonic uptime (`[up:Xs]`) entries to internal storage (`filesDir/logs/diagnostic_log_current.txt`) alongside a real-time hardware header (displayed Android version vs real `SDK_INT`, `elapsedRealtime` uptime to distinguish Cold Boot from MCU standby, Overlay/Battery permissions, and `SharedPreferences` state).
+
 ## 0.9.9+99 (Bulletproof Auto-Start for Android 8+ Automotive Head-Units)
 * **Manifest & MCU Wakeup Fix (`AndroidManifest.xml`)**: Enabled `android:exported="true"`, `android:directBootAware="true"`, and high priority (`999`) on `BootReceiver`. Added support for Chinese Head-Unit MCU wakeup / standby exit intents (`QUICKBOOT_POWERON`, `USER_PRESENT`, `ACTION_POWER_CONNECTED`, `com.syu.ms.action.ACC_ON`, `com.tw.action.ACC_ON`, `com.glsx.boot.ACCON`, `com.microntek.bootcheck`, `autochips.intent.action.QB_POWERON`) and set `android:stopWithTask="false"` on `FloatingVolumeService`.
 * **Unconditional Auto-Start on Boot (`BootReceiver.kt`)**: Removed the blocking `if (restoreState && !wasServiceRunning) return` check that aborted startup whenever the car's MCU stopped services during ignition power-off (`ACC OFF`).

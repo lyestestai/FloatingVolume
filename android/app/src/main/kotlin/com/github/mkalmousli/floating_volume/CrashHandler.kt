@@ -4,8 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.os.PowerManager
+import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.github.mkalmousli.floating_volume.receiver.BootReceiver
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -21,14 +26,32 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     // Configuration
     private const val LOG_DIR_NAME = "logs"
     private const val LOG_FILE_PREFIX = "crash_log_"
+    private const val DIAG_FILE_NAME = "diagnostic_log_current.txt"
     private const val LOG_FILE_EXTENSION = ".txt"
-    private const val MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
+    private const val MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024 // 1 MB max for fast UI loading
     private const val TAG = "CrashHandler"
+    const val KEY_DIAGNOSTIC_LOGS_ENABLED = "diagnostic_logs_enabled"
 
-    fun init(context: Context) {
-        this.context = context
-        defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(this)
+    fun init(ctx: Context) {
+        this.context = ctx.applicationContext ?: ctx
+        val currentDefault = Thread.getDefaultUncaughtExceptionHandler()
+        if (currentDefault !== this) {
+            defaultHandler = currentDefault
+            Thread.setDefaultUncaughtExceptionHandler(this)
+        }
+    }
+
+    fun setLogsEnabled(ctx: Context, enabled: Boolean) {
+        init(ctx)
+        val prefs = ctx.getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_DIAGNOSTIC_LOGS_ENABLED, enabled).commit()
+        logEvent(ctx, TAG, "Diagnostic log window toggled: enabled=$enabled")
+    }
+
+    fun isLogsEnabled(ctx: Context): Boolean {
+        init(ctx)
+        val prefs = ctx.getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_DIAGNOSTIC_LOGS_ENABLED, false)
     }
 
     override fun uncaughtException(t: Thread, e: Throwable) {
@@ -37,9 +60,40 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     }
 
     /**
-     * Sauvegarde un log de crash dans le répertoire logs
-     * Effectue automatiquement la rotation si le fichier dépasse MAX_LOG_SIZE_BYTES
+     * Enregistre une ligne d'événement horodatée (BootReceiver, Service, Audio, UI)
+     * avec le temps écoulé depuis le démarrage matériel (uptime) pour distinguer
+     * un vrai Cold Boot d'une veille MCU sur autoradio Android 8.
      */
+    @Synchronized
+    fun logEvent(ctx: Context?, tag: String, message: String) {
+        Log.i(tag, message)
+        try {
+            val resolvedCtx = ctx?.applicationContext ?: ctx ?: if (::context.isInitialized) context else return
+            if (!::context.isInitialized) {
+                context = resolvedCtx
+            }
+
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+            val uptimeSec = SystemClock.elapsedRealtime() / 1000L
+            val line = "[$timestamp] [up:${uptimeSec}s] [$tag] $message\n"
+
+            val logDir = getInternalLogsDirectory(resolvedCtx)
+            if (logDir != null) {
+                val diagFile = File(logDir, DIAG_FILE_NAME)
+                if (diagFile.exists() && diagFile.length() + line.length > MAX_LOG_SIZE_BYTES) {
+                    rotateLogFile(diagFile)
+                }
+                diagFile.appendText(line)
+            }
+        } catch (ex: Throwable) {
+            Log.e(TAG, "Error writing diagnostic log event", ex)
+        }
+    }
+
+    /**
+     * Sauvegarde un log de crash dans le répertoire logs
+     */
+    @Synchronized
     private fun saveCrashLog(e: Throwable) {
         try {
             val sw = StringWriter()
@@ -48,32 +102,31 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
             val stackTrace = sw.toString()
 
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
-            val logId = System.currentTimeMillis()
-            val logContent = "[$logId] Time: $timestamp\nThread: ${Thread.currentThread().name}\n$stackTrace\n${"=".repeat(80)}\n\n"
+            val uptimeSec = SystemClock.elapsedRealtime() / 1000L
+            val logContent = "\n[CRASH] [$timestamp] [up:${uptimeSec}s] Thread: ${Thread.currentThread().name}\n$stackTrace\n${"=".repeat(60)}\n"
+
+            if (::context.isInitialized) {
+                val internalDir = getInternalLogsDirectory(context)
+                if (internalDir != null) {
+                    val diagFile = File(internalDir, DIAG_FILE_NAME)
+                    diagFile.appendText(logContent)
+                }
+            }
 
             val logDir = getLogsDirectory()
             if (logDir != null) {
                 val currentLogFile = File(logDir, "${LOG_FILE_PREFIX}current${LOG_FILE_EXTENSION}")
-
-                // Vérifier si rotation nécessaire
                 if (currentLogFile.exists() && currentLogFile.length() + logContent.length > MAX_LOG_SIZE_BYTES) {
                     rotateLogFile(currentLogFile)
                 }
-
                 currentLogFile.appendText(logContent)
                 Log.e(TAG, "Crash log saved to: ${currentLogFile.absolutePath}")
-            } else {
-                Log.e(TAG, "Could not get logs directory")
             }
-
         } catch (ex: Exception) {
             Log.e(TAG, "Error saving crash log", ex)
         }
     }
 
-    /**
-     * Archive le fichier de log courant avec un timestamp
-     */
     private fun rotateLogFile(currentFile: File) {
         try {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
@@ -82,19 +135,36 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
                 "${LOG_FILE_PREFIX}${timestamp}${LOG_FILE_EXTENSION}"
             )
             currentFile.renameTo(archivedFile)
-            Log.d(TAG, "Log file rotated to: ${archivedFile.absolutePath}")
         } catch (ex: Exception) {
             Log.e(TAG, "Error rotating log file", ex)
         }
     }
 
     /**
-     * Obtient ou crée le répertoire des logs
-     * Chemin: /storage/emulated/0/Android/data/com.github.mkalmousli.floating_volume/files/logs/
+     * Répertoire interne toujours disponible dès la première milliseconde du boot
+     * (/data/data/com.github.mkalmousli.floating_volume/files/logs)
+     */
+    private fun getInternalLogsDirectory(ctx: Context): File? {
+        return try {
+            val dir = File(ctx.filesDir, LOG_DIR_NAME)
+            if (!dir.exists()) {
+                dir.mkdirs()
+            }
+            dir
+        } catch (ex: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Répertoire externe de l'application
+     * (/storage/emulated/0/Android/data/com.github.mkalmousli.floating_volume/files/logs/)
      */
     private fun getLogsDirectory(): File? {
+        if (!::context.isInitialized) return null
         return try {
-            val dir = File(context.getExternalFilesDir(null), LOG_DIR_NAME)
+            val base = context.getExternalFilesDir(null) ?: context.filesDir
+            val dir = File(base, LOG_DIR_NAME)
             if (!dir.exists()) {
                 dir.mkdirs()
             }
@@ -105,43 +175,133 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         }
     }
 
-    /**
-     * Retourne le chemin complet du répertoire des logs
-     */
     fun getLogsDirectoryPath(): String? = getLogsDirectory()?.absolutePath
 
-    /**
-     * Liste tous les fichiers de log disponibles
-     */
     fun getLogFiles(): List<File> {
-        val logDir = getLogsDirectory() ?: return emptyList()
-        return logDir.listFiles { file ->
-            file.isFile && file.name.startsWith(LOG_FILE_PREFIX)
-        }?.sortedByDescending { it.lastModified() } ?: emptyList()
+        val files = mutableListOf<File>()
+        if (::context.isInitialized) {
+            getInternalLogsDirectory(context)?.listFiles()?.filter { it.isFile && it.name.endsWith(".txt") }?.let {
+                files.addAll(it)
+            }
+        }
+        getLogsDirectory()?.listFiles()?.filter { it.isFile && it.name.endsWith(".txt") }?.forEach { extFile ->
+            if (files.none { it.absolutePath == extFile.absolutePath }) {
+                files.add(extFile)
+            }
+        }
+        return files.sortedByDescending { it.lastModified() }
     }
 
     /**
-     * Obtient la taille totale des logs en bytes
+     * Génère le rapport complet affiché dans la fenêtre de logs Flutter et utilisé
+     * pour les boutons Copier, Partager et Enregistrer.
      */
+    fun getFullDiagnosticReport(ctx: Context): String {
+        init(ctx)
+        val sb = StringBuilder()
+        val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+        val uptimeMs = SystemClock.elapsedRealtime()
+        val uptimeMin = uptimeMs / 60000L
+        val uptimeSec = (uptimeMs % 60000L) / 1000L
+
+        val canOverlay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try { Settings.canDrawOverlays(ctx) } catch (_: Throwable) { false }
+        } else true
+
+        val isIgnoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val pm = ctx.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                pm?.isIgnoringBatteryOptimizations(ctx.packageName) ?: false
+            } catch (_: Throwable) { false }
+        } else true
+
+        val prefs = ctx.getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        val autoStart = prefs.getBoolean(BootReceiver.KEY_AUTO_START, false)
+        val delayMs = prefs.getLong(BootReceiver.KEY_AUTO_START_DELAY, BootReceiver.DEFAULT_DELAY_MS)
+        val lastState = prefs.getBoolean(BootReceiver.KEY_LAST_SERVICE_STATE, false)
+        val logsEnabled = prefs.getBoolean(KEY_DIAGNOSTIC_LOGS_ENABLED, false)
+        val serviceRunning = FloatingVolumeService.instance != null
+
+        sb.appendLine("=== FLOATING VOLUME v0.9.10+100 — DIAGNOSTIC ===")
+        sb.appendLine("Date rapport    : $now")
+        sb.appendLine("Android affiché : Android ${Build.VERSION.RELEASE} (SDK_INT réel = ${Build.VERSION.SDK_INT})")
+        sb.appendLine("Matériel        : ${Build.MANUFACTURER} | ${Build.MODEL} | ${Build.BOARD} | ${Build.HARDWARE}")
+        sb.appendLine("Uptime système  : ${uptimeMin}m ${uptimeSec}s (${uptimeMs / 1000}s depuis vrai boot)")
+        sb.appendLine("Permissions     : Overlay=$canOverlay | BatterieIgnorée=$isIgnoringBattery")
+        sb.appendLine("Config AutoStart: Activé=$autoStart | Délai=${delayMs}ms | LastState=$lastState | LogsUI=$logsEnabled")
+        sb.appendLine("Service Actif   : $serviceRunning")
+        sb.appendLine("================================================")
+        sb.appendLine()
+        sb.appendLine("--- JOURNAL DES ÉVÉNEMENTS & CRASHS ---")
+
+        val allFiles = getLogFiles()
+        if (allFiles.isEmpty()) {
+            sb.appendLine("(Aucun événement enregistré pour le moment)")
+        } else {
+            allFiles.sortedBy { it.lastModified() }.forEach { file ->
+                try {
+                    val text = file.readText()
+                    if (text.isNotBlank()) {
+                        if (allFiles.size > 1) {
+                            sb.appendLine("--- Fichier : ${file.name} ---")
+                        }
+                        // Limiter aux 300 dernières lignes pour garder une UI ultra-fluide
+                        val lines = text.lines()
+                        val tailLines = if (lines.size > 300) lines.takeLast(300) else lines
+                        sb.appendLine(tailLines.joinToString("\n"))
+                    }
+                } catch (e: Exception) {
+                    sb.appendLine("Erreur lecture ${file.name}: ${e.message}")
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    /**
+     * Enregistre le rapport complet sous forme de fichier .txt directement dans
+     * le dossier public Download/ (ou à défaut dans le dossier externe de l'application).
+     */
+    fun saveLogsToPublicDisk(ctx: Context): String {
+        init(ctx)
+        val content = getFullDiagnosticReport(ctx)
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val fileName = "FloatingVolume_Log_${timestamp}.txt"
+
+        // 1. Essayer dans /storage/emulated/0/Download/
+        try {
+            @Suppress("DEPRECATION")
+            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadDir != null) {
+                if (!downloadDir.exists()) downloadDir.mkdirs()
+                val outFile = File(downloadDir, fileName)
+                outFile.writeText(content)
+                logEvent(ctx, TAG, "Logs sauvegardés sur disque : ${outFile.absolutePath}")
+                return outFile.absolutePath
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "Fallback from public Download dir: ${e.message}")
+        }
+
+        // 2. Repli dans /storage/emulated/0/Android/data/.../files/logs/
+        val fallbackDir = getLogsDirectory() ?: getInternalLogsDirectory(ctx)
+            ?: throw IllegalStateException("Impossible d'accéder au stockage")
+        val fallbackFile = File(fallbackDir, fileName)
+        fallbackFile.writeText(content)
+        logEvent(ctx, TAG, "Logs sauvegardés dans : ${fallbackFile.absolutePath}")
+        return fallbackFile.absolutePath
+    }
+
     fun getTotalLogsSize(): Long {
         return getLogFiles().sumOf { it.length() }
     }
 
-    /**
-     * Export les logs vers le répertoire Documents avec création d'Intent de partage
-     * Retourne l'Uri du fichier ZIP créé
-     */
     fun exportLogs(): Uri? {
         return try {
             val logFiles = getLogFiles()
-            if (logFiles.isEmpty()) {
-                Log.w(TAG, "No log files to export")
-                return null
-            }
+            if (logFiles.isEmpty()) return null
 
             val exportFile = createExportFile()
-
-            // Créer un ZIP contenant tous les logs
             java.util.zip.ZipOutputStream(exportFile.outputStream()).use { zos ->
                 logFiles.forEach { logFile ->
                     val entry = java.util.zip.ZipEntry(logFile.name)
@@ -153,9 +313,6 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
                 }
             }
 
-            Log.d(TAG, "Logs exported to: ${exportFile.absolutePath}")
-
-            // Retourner l'Uri via FileProvider
             FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
@@ -167,12 +324,8 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         }
     }
 
-    /**
-     * Crée le fichier ZIP d'export dans le répertoire Documents
-     */
     private fun createExportFile(): File {
         val exportDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Sur Android 10+, utiliser le répertoire Documents de l'app
             File(context.getExternalFilesDir(null)?.parentFile, "export").apply {
                 if (!exists()) mkdirs()
             }
@@ -185,35 +338,36 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     }
 
     /**
-     * Retourne un Intent prêt pour partager les logs exportés
+     * Crée un Intent de partage en texte brut (universel pour Email, Éditeurs de texte,
+     * Bluetooth, Notes sur Android 8+).
      */
-    fun createShareLogsIntent(): Intent? {
-        val exportUri = exportLogs() ?: return null
+    fun createShareLogsIntent(ctx: Context? = null): Intent? {
+        val resolvedCtx = ctx ?: if (::context.isInitialized) context else return null
+        val reportText = getFullDiagnosticReport(resolvedCtx)
 
         return Intent(Intent.ACTION_SEND).apply {
-            type = "application/zip"
-            putExtra(Intent.EXTRA_STREAM, exportUri)
-            putExtra(Intent.EXTRA_SUBJECT, "FloatingVolume Crash Logs")
-            putExtra(Intent.EXTRA_TEXT, "Attached are the crash logs from FloatingVolume application")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "FloatingVolume v0.9.10 - Logs de Diagnostic")
+            putExtra(Intent.EXTRA_TEXT, reportText)
         }
     }
 
     /**
-     * Efface tous les fichiers de log
-     * Retourne true si succès, false sinon
+     * Efface tous les fichiers de log (internes et externes)
      */
-    fun clearLogs(): Boolean {
+    @Synchronized
+    fun clearLogs(ctx: Context? = null): Boolean {
+        ctx?.let { init(it) }
         return try {
             val logFiles = getLogFiles()
             var allDeleted = true
             logFiles.forEach { file ->
                 if (!file.delete()) {
-                    Log.w(TAG, "Failed to delete log file: ${file.absolutePath}")
                     allDeleted = false
-                } else {
-                    Log.d(TAG, "Deleted log file: ${file.absolutePath}")
                 }
+            }
+            if (::context.isInitialized) {
+                logEvent(context, TAG, "Journal effacé manuellement par l'utilisateur.")
             }
             allDeleted
         } catch (ex: Exception) {
@@ -222,39 +376,22 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         }
     }
 
-    /**
-     * Efface un fichier de log spécifique
-     */
     fun deleteLogFile(logFile: File): Boolean {
         return try {
-            if (logFile.delete()) {
-                Log.d(TAG, "Deleted log file: ${logFile.absolutePath}")
-                true
-            } else {
-                Log.w(TAG, "Failed to delete log file: ${logFile.absolutePath}")
-                false
-            }
+            logFile.delete()
         } catch (ex: Exception) {
-            Log.e(TAG, "Error deleting log file", ex)
             false
         }
     }
 
-    /**
-     * Lecture du contenu d'un fichier de log
-     */
     fun readLogFile(logFile: File): String? {
         return try {
             logFile.readText()
         } catch (ex: Exception) {
-            Log.e(TAG, "Error reading log file", ex)
             null
         }
     }
 
-    /**
-     * Obtient les stats sur les logs
-     */
     data class LogStats(
         val totalFiles: Int,
         val totalSizeBytes: Long,
@@ -262,7 +399,8 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         val newestLogDate: Date?
     )
 
-    fun getLogStats(): LogStats {
+    fun getLogStats(ctx: Context? = null): LogStats {
+        ctx?.let { init(it) }
         val logFiles = getLogFiles()
         return LogStats(
             totalFiles = logFiles.size,

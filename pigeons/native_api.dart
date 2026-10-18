@@ -102,6 +102,31 @@ abstract class NativeApi {
   // ========== Logs Management ==========
 
   ///
+  /// Active ou désactive la fenêtre et la collecte des logs de diagnostic
+  ///
+  @async
+  void setLogsEnabled(bool enabled);
+
+  ///
+  /// Récupère l'état d'activation de la fenêtre de logs
+  ///
+  @async
+  bool getLogsEnabled();
+
+  ///
+  /// Récupère le contenu textuel complet des logs (en-tête diagnostic + historique)
+  ///
+  @async
+  String getLogsContent();
+
+  ///
+  /// Enregistre les logs dans un fichier texte (.txt) sur le disque
+  /// et retourne le chemin complet du fichier enregistré
+  ///
+  @async
+  String saveLogsToDisk();
+
+  ///
   /// Exporte les logs et retourne l'Intent de partage
   ///
   @async

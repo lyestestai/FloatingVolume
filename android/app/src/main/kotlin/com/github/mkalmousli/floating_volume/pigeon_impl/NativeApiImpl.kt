@@ -22,6 +22,7 @@ class NativeApiImpl(
     override fun startService(callback: (Result<Unit>) -> Unit) {
         scope.inMain {
             try {
+                CrashHandler.logEvent(context, TAG, "Manual startService requested from Flutter UI")
                 com.github.mkalmousli.floating_volume.FloatingVolumeService.isStoppingIntentionally = false
                 val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java).apply {
                     putExtra(com.github.mkalmousli.floating_volume.FloatingVolumeService.EXTRA_BOOT_DELAY_MS, 0L)
@@ -34,6 +35,7 @@ class NativeApiImpl(
                 // Service status is updated in FloatingVolumeService.onCreate()
                 callback(Result.success(Unit))
             } catch (e: Exception) {
+                CrashHandler.logEvent(context, TAG, "startService failed: ${e.message}")
                 callback(Result.failure(e))
             }
         }
@@ -42,12 +44,14 @@ class NativeApiImpl(
     override fun stopService(callback: (Result<Unit>) -> Unit) {
         scope.inMain {
             try {
+                CrashHandler.logEvent(context, TAG, "Manual stopService requested from Flutter UI")
                 com.github.mkalmousli.floating_volume.FloatingVolumeService.isStoppingIntentionally = true
                 val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java)
                 context.stopService(intent)
                 // Service status is updated in FloatingVolumeService.onDestroy()
                 callback(Result.success(Unit))
             } catch (e: Exception) {
+                CrashHandler.logEvent(context, TAG, "stopService failed: ${e.message}")
                 callback(Result.failure(e))
             }
         }
@@ -129,6 +133,7 @@ class NativeApiImpl(
                     .putLong(KEY_AUTO_START_DELAY, currentDelay)
                     .commit()
                 Log.d(TAG, "Auto-start set to: $enabled (delay=${currentDelay}ms)")
+                CrashHandler.logEvent(context, TAG, "Auto-start set to: $enabled (delay=${currentDelay}ms)")
                 inMain { callback(Result.success(Unit)) }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to set auto-start", e)
@@ -157,6 +162,7 @@ class NativeApiImpl(
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit().putLong(KEY_AUTO_START_DELAY, safeDelay).commit()
                 Log.d(TAG, "Auto-start delay set to: ${safeDelay}ms")
+                CrashHandler.logEvent(context, TAG, "Auto-start delay set to: ${safeDelay}ms (${safeDelay / 1000}s)")
                 inMain { callback(Result.success(Unit)) }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to set auto-start delay", e)
@@ -207,13 +213,63 @@ class NativeApiImpl(
 
     // ========== Logs Management ==========
 
+    override fun setLogsEnabled(enabled: Boolean, callback: (Result<Unit>) -> Unit) {
+        scope.inIO {
+            try {
+                CrashHandler.setLogsEnabled(context, enabled)
+                inMain { callback(Result.success(Unit)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to set logs enabled", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
+    override fun getLogsEnabled(callback: (Result<Boolean>) -> Unit) {
+        scope.inIO {
+            try {
+                val enabled = CrashHandler.isLogsEnabled(context)
+                inMain { callback(Result.success(enabled)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to get logs enabled", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
+    override fun getLogsContent(callback: (Result<String>) -> Unit) {
+        scope.inIO {
+            try {
+                val report = CrashHandler.getFullDiagnosticReport(context)
+                inMain { callback(Result.success(report)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to get logs content", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
+    override fun saveLogsToDisk(callback: (Result<String>) -> Unit) {
+        scope.inIO {
+            try {
+                val savedPath = CrashHandler.saveLogsToPublicDisk(context)
+                inMain { callback(Result.success(savedPath)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save logs to disk", e)
+                inMain { callback(Result.failure(e)) }
+            }
+        }
+    }
+
     override fun exportLogsAndShare(callback: (Result<Unit>) -> Unit) {
         scope.inIO {
             try {
-                val intent = CrashHandler.createShareLogsIntent()
+                val intent = CrashHandler.createShareLogsIntent(context)
                 if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(Intent.createChooser(intent, "Share Logs"))
+                    val chooser = Intent.createChooser(intent, "Partager le journal Floating Volume").apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(chooser)
                     inMain { callback(Result.success(Unit)) }
                 } else {
                     Log.w(TAG, "No logs available to export")
@@ -229,7 +285,7 @@ class NativeApiImpl(
     override fun clearAllLogs(callback: (Result<Unit>) -> Unit) {
         scope.inIO {
             try {
-                val success = CrashHandler.clearLogs()
+                val success = CrashHandler.clearLogs(context)
                 if (success) {
                     Log.d(TAG, "All logs cleared successfully")
                     inMain { callback(Result.success(Unit)) }
@@ -247,7 +303,7 @@ class NativeApiImpl(
     override fun getLogStats(callback: (Result<LogStatsData>) -> Unit) {
         scope.inIO {
             try {
-                val stats = CrashHandler.getLogStats()
+                val stats = CrashHandler.getLogStats(context)
                 val data = LogStatsData(
                     totalFiles = stats.totalFiles.toLong(),
                     totalSizeBytes = stats.totalSizeBytes,

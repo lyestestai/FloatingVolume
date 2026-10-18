@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.os.UserManager
 import android.util.Log
+import com.github.mkalmousli.floating_volume.CrashHandler
 import com.github.mkalmousli.floating_volume.FloatingVolumeService
 
 /**
@@ -113,8 +114,10 @@ class BootReceiver : BroadcastReceiver() {
                     )
                 }
                 Log.d(TAG, "Scheduled safety-net monotonic alarm in ${delayMs}ms")
+                CrashHandler.logEvent(context, TAG, "Scheduled safety-net monotonic alarm in ${delayMs}ms")
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to schedule alarm, attempting direct service start", e)
+                CrashHandler.logEvent(context, TAG, "Failed to schedule alarm (${e.message}), attempting direct service start")
                 startFloatingVolumeService(context, 0L)
             }
         }
@@ -130,8 +133,10 @@ class BootReceiver : BroadcastReceiver() {
                     context.startService(serviceIntent)
                 }
                 Log.i(TAG, "FloatingVolumeService start requested (bootDelayMs=${bootDelayMs}ms)")
+                CrashHandler.logEvent(context, TAG, "FloatingVolumeService start requested (bootDelayMs=${bootDelayMs}ms)")
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to start FloatingVolumeService", e)
+                CrashHandler.logEvent(context, TAG, "ERROR starting FloatingVolumeService: ${e.javaClass.simpleName}: ${e.message}")
             }
         }
     }
@@ -161,6 +166,7 @@ class BootReceiver : BroadcastReceiver() {
 
             if (!autoStartEnabled) {
                 Log.d(TAG, "Auto-start is disabled. Ignoring $action.")
+                CrashHandler.logEvent(context, TAG, "Ignored $action because auto_start_enabled=false")
                 return
             }
 
@@ -168,6 +174,7 @@ class BootReceiver : BroadcastReceiver() {
             // simply ping it with 0ms delay so it ensures the overlay is attached.
             if (FloatingVolumeService.instance != null) {
                 Log.d(TAG, "Service already active on $action; ensuring overlay visibility.")
+                CrashHandler.logEvent(context, TAG, "Service already active on $action; ensuring overlay visibility")
                 startFloatingVolumeService(context, 0L)
                 return
             }
@@ -176,6 +183,7 @@ class BootReceiver : BroadcastReceiver() {
             val delayMs = rawDelay.coerceIn(MIN_DELAY_MS, MAX_DELAY_MS)
 
             Log.i(TAG, "Auto-start triggered by $action with delay=${delayMs}ms")
+            CrashHandler.logEvent(context, TAG, "Auto-start triggered by $action (delay=${delayMs}ms)")
 
             // Stage 1: Start ForegroundService immediately with internal coroutine delay
             // so the process is immediately protected by startForeground()
@@ -186,6 +194,7 @@ class BootReceiver : BroadcastReceiver() {
             scheduleServiceStart(context, delayMs)
         } catch (e: Throwable) {
             Log.e(TAG, "Error handling boot/wake event ($action)", e)
+            CrashHandler.logEvent(context, TAG, "Error in handleBootOrWake($action): ${e.message}")
         }
     }
 
@@ -199,6 +208,7 @@ class BootReceiver : BroadcastReceiver() {
 
             if (autoStartEnabled || wasServiceRunning) {
                 Log.i(TAG, "App updated. Restarting FloatingVolumeService.")
+                CrashHandler.logEvent(context, TAG, "App updated (MY_PACKAGE_REPLACED). Restarting service.")
                 startFloatingVolumeService(context, 1000L)
                 scheduleServiceStart(context, 2000L)
             }
@@ -210,6 +220,9 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         Log.d(TAG, "BootReceiver received action: $action")
+        if (isUserUnlocked(context)) {
+            CrashHandler.logEvent(context, TAG, "Received broadcast: $action")
+        }
 
         when {
             action in BOOT_AND_WAKE_ACTIONS -> {
@@ -223,6 +236,7 @@ class BootReceiver : BroadcastReceiver() {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 if (prefs.getBoolean(KEY_AUTO_START, false)) {
                     Log.i(TAG, "Safety-net alarm triggered: ensuring FloatingVolumeService is running")
+                    CrashHandler.logEvent(context, TAG, "Safety-net alarm fired (ACTION_START_SERVICE_DELAYED)")
                     startFloatingVolumeService(context, 0L)
                 }
             }

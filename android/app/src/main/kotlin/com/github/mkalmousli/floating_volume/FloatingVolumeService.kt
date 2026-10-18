@@ -160,6 +160,7 @@ class FloatingVolumeService : Service() {
         instance = this
         isStoppingIntentionally = false
         CrashHandler.init(this)
+        CrashHandler.logEvent(this, TAG, "Service onCreate() called")
 
         // Immediately promote to foreground on creation to satisfy Android 8+ 5-second rule
         promoteToForeground(isVisible = true)
@@ -171,6 +172,8 @@ class FloatingVolumeService : Service() {
         try {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
+                    val action = intent?.action ?: "unknown"
+                    CrashHandler.logEvent(this@FloatingVolumeService, TAG, "screenWakeReceiver received: $action")
                     if (isEngineInitialized && !isBootDelayActive) {
                         scope.inMain {
                             ensureOverlayAttached()
@@ -447,23 +450,27 @@ class FloatingVolumeService : Service() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
                 Log.w(TAG, "Overlay permission not granted yet; cannot attach FloatingVolumeView.")
+                CrashHandler.logEvent(this, TAG, "WARNING: Overlay permission (canDrawOverlays) is FALSE! Cannot attach overlay.")
                 return
             }
             if (!floatingMuteView.isAttachedToWindow) {
                 windowManager.addView(floatingMuteView, layoutParams)
                 Log.i(TAG, "FloatingVolumeView attached to WindowManager successfully.")
+                CrashHandler.logEvent(this, TAG, "FloatingVolumeView attached to WindowManager at (${layoutParams.x}, ${layoutParams.y})")
             }
             if (VisibilityBloc.state.value is VisibilityBloc.State.Shown) {
                 floatingMuteView.showAnimated()
             }
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to attach FloatingVolumeView to WindowManager", e)
+            CrashHandler.logEvent(this, TAG, "ERROR attaching overlay: ${e.javaClass.simpleName}: ${e.message}")
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val requestedDelayMs = intent?.getLongExtra(EXTRA_BOOT_DELAY_MS, 0L) ?: 0L
         Log.d(TAG, "onStartCommand called (requestedDelayMs=${requestedDelayMs}ms, isEngineInitialized=$isEngineInitialized)")
+        CrashHandler.logEvent(this, TAG, "onStartCommand (requestedDelayMs=${requestedDelayMs}ms, isEngineInitialized=$isEngineInitialized)")
 
         // Every startForegroundService() call on Android 8+ MUST be matched by startForeground()
         if (!isEngineInitialized && requestedDelayMs > 0L) {
@@ -482,8 +489,10 @@ class FloatingVolumeService : Service() {
                 if (requestedDelayMs > 0L) {
                     isBootDelayActive = true
                     Log.i(TAG, "Auto-start delay active: waiting ${requestedDelayMs}ms before attaching overlay...")
+                    CrashHandler.logEvent(this@FloatingVolumeService, TAG, "Waiting ${requestedDelayMs}ms (${requestedDelayMs / 1000}s) before attaching overlay...")
                     delay(requestedDelayMs)
                     isBootDelayActive = false
+                    CrashHandler.logEvent(this@FloatingVolumeService, TAG, "Auto-start delay finished. Initializing BLoCs & overlay.")
                 }
                 startBlocsAndOverlay()
             }
@@ -498,11 +507,13 @@ class FloatingVolumeService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
+        CrashHandler.logEvent(this, TAG, "onTaskRemoved called (isStoppingIntentionally=$isStoppingIntentionally)")
         if (!isStoppingIntentionally) {
             try {
                 val prefs = getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
                 if (prefs.getBoolean(BootReceiver.KEY_AUTO_START, false)) {
                     Log.i(TAG, "Task removed while service active; scheduling auto-restart in 3s")
+                    CrashHandler.logEvent(this, TAG, "Scheduling service auto-restart in 3000ms after task removal")
                     BootReceiver.scheduleServiceStart(applicationContext, 3000L)
                 }
             } catch (e: Throwable) {
@@ -514,6 +525,7 @@ class FloatingVolumeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service being destroyed (intentional=$isStoppingIntentionally)")
+        CrashHandler.logEvent(this, TAG, "Service onDestroy() (intentional=$isStoppingIntentionally)")
 
         screenWakeReceiver?.let {
             try {
@@ -541,6 +553,7 @@ class FloatingVolumeService : Service() {
             try {
                 val prefs = getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
                 if (prefs.getBoolean(BootReceiver.KEY_AUTO_START, false)) {
+                    CrashHandler.logEvent(this, TAG, "Unintentional stop detected; scheduling safety restart in 5000ms")
                     BootReceiver.scheduleServiceStart(applicationContext, 5000L)
                 }
             } catch (_: Throwable) {}
