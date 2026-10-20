@@ -2,7 +2,7 @@ name: floating_volume
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 0.9.10+100
+version: 0.9.11+101
 
 environment:
   sdk: ^3.7.0
@@ -35,6 +35,8 @@ dependencies:
 
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   pigeon:
 
   build_runner: 

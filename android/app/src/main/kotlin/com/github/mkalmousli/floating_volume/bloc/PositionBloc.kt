@@ -3,7 +3,6 @@ package com.github.mkalmousli.floating_volume.bloc
 import android.content.Context
 import android.util.Log
 import com.github.mkalmousli.floating_volume.models.Orientation
-import com.github.mkalmousli.floating_volume.newInMain
 import com.github.mkalmousli.floating_volume.sharedPrefs
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +19,7 @@ object PositionBloc {
 
     val state = _state.asStateFlow()
 
-    val event = MutableSharedFlow<Event>()
+    val event = MutableSharedFlow<Event>(extraBufferCapacity = 16)
 
 
     sealed class State {
@@ -53,10 +52,23 @@ object PositionBloc {
             val (lastXPrefKey, lastYPrefKey) =
                 getSharedPreferenceKeysForOrientation(orientation)
 
-            Position(
-                context.sharedPrefs.getInt(lastXPrefKey, 0),
-                context.sharedPrefs.getInt(lastYPrefKey, 0)
-            )
+            // Default initial X to the left side of the screen instead of (0, 0) center,
+            // so the floating slider never spawns directly on top of the centered HomeScreen buttons!
+            val screenWidth = try {
+                context.resources.displayMetrics.widthPixels
+            } catch (_: Throwable) {
+                1024
+            }
+            val defaultX = -((screenWidth / 2) - 80).coerceAtLeast(120)
+
+            val savedX = if (context.sharedPrefs.contains(lastXPrefKey)) {
+                context.sharedPrefs.getInt(lastXPrefKey, defaultX)
+            } else {
+                defaultX
+            }
+            val savedY = context.sharedPrefs.getInt(lastYPrefKey, 0)
+
+            Position(savedX, savedY)
         }
 
         suspend fun getSavedPositionForCurrentOrientation(context: Context) = run {

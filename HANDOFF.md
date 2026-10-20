@@ -1,4 +1,4 @@
-# Handoff — Projet Floating Volume (`v0.9.10+100`)
+# Handoff — Projet Floating Volume (`v0.9.11+101`)
 
 Ce document résume l'état exact du projet **Floating Volume** (édition Autoradio Android 8 Oreo / Head-Unit) afin de poursuivre le développement dans une nouvelle conversation sans perte de contexte.
 
@@ -7,8 +7,8 @@ Ce document résume l'état exact du projet **Floating Volume** (édition Autora
 ## 1. Contexte & Règles d'Or du Projet
 - **Répertoire du projet :** `c:\Users\mahal\OneDrive - vaganet\ia\Antigravity\FloatingVolume`
 - **Cible matérielle :** Autoradio / tablette embarquée sous **Android 8.0/8.1 Oreo (API 26/27)** (souvent masqué en « Android 12+ » sur les autoradios chinois type FYT, Topway, MTCD, XYAuto) et **Android Automotive OS (AAOS)**.
-- **Version actuelle :** `0.9.10+100` (`versionCode = 100`, `versionName = "0.9.10"`)
-- **Dernier APK généré :** `APK/FloatingVolume-v0.9.10-basic.apk`
+- **Version actuelle :** `0.9.11+101` (`versionCode = 101`, `versionName = "0.9.11"`)
+- **Dernier APK généré :** `APK/FloatingVolume-v0.9.11-basic.apk`
 - **Documentation de référence à lire impérativement :**
   - `for_agent.md` (Règles d'Or Architecturales, Processus de Release Systématique, Mémoire Agent IA)
   - `architecture.md` (Chapitre 1 : Flutter & Pigeon ; Chapitre 2 : Service Natif, Auto-Start & AudioManager + Diagrammes Mermaid)
@@ -25,9 +25,16 @@ Ce document résume l'état exact du projet **Floating Volume** (édition Autora
 
 ---
 
-## 3. État Technique Actuel (`v0.9.10+100`)
+## 3. État Technique Actuel (`v0.9.11+101`)
 
-### A. Fenêtre de Diagnostic Embarquée & Export des Logs (`v0.9.10`)
+### A. Réactivité Totale de l'UI de Configuration & Isolation Tactile (`v0.9.11`)
+- **Enregistrement Pigeon Synchrone + `SupervisorJob` (`MainActivity.kt`) :** `NativeApi`, `AppearanceApi`, `MediaApi` et les `EventChannel` sont enregistrés de manière synchrone dès `configureFlutterEngine()` avec un `CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)` dédié.
+- **Suppression du crash de scope dans `VisibilityBloc.kt` :** Suppression de `throw IllegalStateException("Service must be running to show the mode.")` qui annulait le `lifecycleScope` de `MainActivity` lorsque `StatusBloc` enchaînait `startService()` puis `showFloatingVolume()`.
+- **Suppression de la boucle infinie de layout à 60 fps (`CoolSlider.kt`) :** `addOnLayoutChangeListener` ne déclenche plus `requestLayout()` en boucle continue lorsque la barre est affichée.
+- **Isolation tactile `WindowManager` & Position par défaut à gauche (`FloatingVolumeService.kt`, `PositionBloc.kt`, `FloatingVolumeView.kt`) :** Retour strict à `FLAG_NOT_FOCUSABLE` (et `FLAG_NOT_TOUCHABLE` si masqué), position initiale par défaut à gauche (`-((screenWidth / 2) - 80)`) au lieu de `0` (plein centre par-dessus les boutons de `HomeScreen`), et hauteur adaptative pour écrans `1024x600`.
+- **Tests automatisés (`test/home_interactive_test.dart`) :** Suite `flutter test` validant que tous les boutons (ON/OFF, Thèmes, Auto-Start, Slider 10s-60s, Fenêtre de Logs et Export) restent 100 % cliquables une fois la barre mise sur « ON ».
+
+### B. Fenêtre de Diagnostic Embarquée & Export des Logs (`v0.9.10`)
 - **`DiagnosticLogsWidget` (`lib/src/screens/home.dart`) :** Panneau activable/désactivable directement dans l'écran d'accueil affichant l'en-tête matériel temps réel (version Android affichée vs vrai `SDK_INT`, uptime monotone depuis le dernier Cold Boot pour distinguer veille MCU et vrai redémarrage, état des permissions et `SharedPreferences`) ainsi que l'historique horodaté des événements (`BootReceiver`, `FloatingVolumeService`, `NativeApiImpl`).
 - **Boutons d'export intégrés :**
   1. **Copier** dans le presse-papiers.

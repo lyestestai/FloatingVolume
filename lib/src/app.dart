@@ -11,7 +11,6 @@ import 'package:floating_volume/src/bloc/permissions/state.dart'
 import 'package:floating_volume/src/bloc/status/bloc.dart' as bstatus;
 import 'package:floating_volume/src/bloc/status/event.dart' as estatus;
 import 'package:floating_volume/src/bloc/status/state.dart' as sstatus;
-import 'package:device_info_plus/device_info_plus.dart';
 
 import 'package:floating_volume/src/bloc/theme/bloc.dart' as btheme;
 import 'package:floating_volume/src/bloc/theme/state.dart' as stheme;
@@ -24,25 +23,28 @@ class FloatingVolumeApp extends StatelessWidget {
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
       BlocProvider(
+        lazy: false,
         create:
             (_) =>
                 bpermissions.Bloc(spermissions.State())
                   ..add(epermissions.Event.initialize),
       ),
       BlocProvider(
+        lazy: false,
         create:
             (_) => bstatus.Bloc(sstatus.State())..add(estatus.Event.initialize),
       ),
       BlocProvider(
+        lazy: false,
         create: (_) => btheme.Bloc()..add(etheme.Event.initialize()),
       ),
     ],
-    child: _FloatingVolumeAppView(),
+    child: const _FloatingVolumeAppView(),
   );
 }
 
 class _FloatingVolumeAppView extends StatelessWidget {
-  const _FloatingVolumeAppView({super.key});
+  const _FloatingVolumeAppView();
 
   @override
   Widget build(BuildContext context) => BlocBuilder<btheme.Bloc, stheme.State>(
@@ -53,7 +55,7 @@ class _FloatingVolumeAppView extends StatelessWidget {
         stheme.Theme.system => null,
       };
 
-      return MaterialApp(home: HomeScreen(), theme: themeData);
+      return MaterialApp(home: const HomeScreen(), theme: themeData);
     },
   );
 }

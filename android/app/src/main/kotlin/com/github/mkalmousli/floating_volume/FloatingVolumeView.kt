@@ -1,35 +1,27 @@
 package com.github.mkalmousli.floating_volume
 
 import android.content.Context
-import android.graphics.Color
 import android.util.Log
 import android.view.Gravity
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.SeekBar
-import androidx.core.view.marginTop
 import androidx.core.view.updateMargins
-import com.github.mkalmousli.floating_volume.bloc.SystemVolumeBloc
 import com.github.mkalmousli.floating_volume.bloc.MediaControlBloc
+import com.github.mkalmousli.floating_volume.bloc.SystemVolumeBloc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlin.math.min
 
 class FloatingVolumeView(
     context: Context
 ) : LinearLayout(context) {
 
-    //TODO: Use other lifecycle-aware coroutine scope
-    private val scope = CoroutineScope(Dispatchers.Main)
-
-    private val audioManager by lazy {
-        context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-    }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     @Volatile
     private var currentMaxVolume: Int = 15 // Default to common music max
@@ -41,10 +33,19 @@ class FloatingVolumeView(
             // Slider works in 0-1000 range for high precision
             min.value = 0
             max.value = 1000
-            
+
+            // Adapt slider height to the screen height (e.g. 600px on 1024x600 car head-units)
+            // so the drag handle and channel icon are never pushed off-screen.
+            val screenHeight = try {
+                resources.displayMetrics.heightPixels
+            } catch (_: Throwable) {
+                600
+            }
+            val adaptiveHeight = (screenHeight * 0.55f).toInt().coerceIn(220, 800)
+
             layoutParams = LayoutParams(
-                60, // slightly wider for modern feel
-                800 // slightly shorter
+                60,
+                adaptiveHeight
             )
             orientation.value = CoolSlider.Orientation.Vertical
 
@@ -54,7 +55,7 @@ class FloatingVolumeView(
                 val initialState = SystemVolumeBloc.state
                     .filterIsInstance<SystemVolumeBloc.State.Initialized>()
                     .first()
-                
+
                 currentMaxVolume = initialState.maxVolume
                 currentStreamType = initialState.streamType
                 value.value = mapSystemVolumeToSlider(initialState.volume)
@@ -65,37 +66,35 @@ class FloatingVolumeView(
                     SystemVolumeBloc.state
                         .filterIsInstance<SystemVolumeBloc.State.Initialized>()
                         .collectLatest { state ->
-                             currentMaxVolume = state.maxVolume
-                             val oldStreamType = currentStreamType
-                             currentStreamType = state.streamType
-                             
-                             inMain {
-                                 if (oldStreamType != currentStreamType) {
-                                     updateMediaControlsVisibility()
-                                 }
-                                 
-                                 // Update Channel Icon
-                                 val iconRes = when (state.streamType) {
-                                     android.media.AudioManager.STREAM_ALARM -> android.R.drawable.ic_lock_idle_alarm
-                                     android.media.AudioManager.STREAM_RING -> android.R.drawable.ic_lock_silent_mode_off
-                                     android.media.AudioManager.STREAM_VOICE_CALL -> android.R.drawable.stat_sys_phone_call
-                                     android.media.AudioManager.STREAM_SYSTEM -> android.R.drawable.ic_dialog_info
-                                     android.media.AudioManager.STREAM_NOTIFICATION -> android.R.drawable.ic_dialog_email
-                                     android.media.AudioManager.STREAM_ACCESSIBILITY -> android.R.drawable.btn_star
-                                     else -> android.R.drawable.ic_media_play // Music
-                                 }
-                                 try {
-                                     channelIv.setImageResource(iconRes)
-                                 } catch (e: Exception) {
-                                     Log.e("FloatingVolume", "Icon failed: $iconRes", e)
-                                     channelIv.setImageResource(android.R.drawable.ic_menu_help)
-                                 }
-                             }
-                             
-                             // Only update if difference is significant to avoid loops/jitter
-                             val newSliderVal = mapSystemVolumeToSlider(state.volume)
-                             // Simple check to avoid feedback loop could be added here if needed
-                             value.value = newSliderVal
+                            currentMaxVolume = state.maxVolume
+                            val oldStreamType = currentStreamType
+                            currentStreamType = state.streamType
+
+                            inMain {
+                                if (oldStreamType != currentStreamType) {
+                                    updateMediaControlsVisibility()
+                                }
+
+                                // Update Channel Icon
+                                val iconRes = when (state.streamType) {
+                                    android.media.AudioManager.STREAM_ALARM -> android.R.drawable.ic_lock_idle_alarm
+                                    android.media.AudioManager.STREAM_RING -> android.R.drawable.ic_lock_silent_mode_off
+                                    android.media.AudioManager.STREAM_VOICE_CALL -> android.R.drawable.stat_sys_phone_call
+                                    android.media.AudioManager.STREAM_SYSTEM -> android.R.drawable.ic_dialog_info
+                                    android.media.AudioManager.STREAM_NOTIFICATION -> android.R.drawable.ic_dialog_email
+                                    android.media.AudioManager.STREAM_ACCESSIBILITY -> android.R.drawable.btn_star
+                                    else -> android.R.drawable.ic_media_play // Music
+                                }
+                                try {
+                                    channelIv.setImageResource(iconRes)
+                                } catch (e: Exception) {
+                                    Log.e("FloatingVolume", "Icon failed: $iconRes", e)
+                                    channelIv.setImageResource(android.R.drawable.ic_menu_help)
+                                }
+                            }
+
+                            val newSliderVal = mapSystemVolumeToSlider(state.volume)
+                            value.value = newSliderVal
                         }
                 }
 
@@ -103,7 +102,7 @@ class FloatingVolumeView(
                 onUserProgressChanged = { sliderVal ->
                     scope.inIO {
                         val targetVol = mapSliderToSystemVolume(sliderVal)
-                        
+
                         // Emit solely on physical human interaction to sever echo loop
                         val currentState = SystemVolumeBloc.state.value as? SystemVolumeBloc.State.Initialized
                         if (currentState == null || currentState.volume != targetVol) {
@@ -154,61 +153,50 @@ class FloatingVolumeView(
     private fun mapSliderToSystemVolume(sliderValue: Number): Int {
         val sliderPercent = sliderValue.toFloat() / 10.0f // 0-1000 -> 0-100%
         val volumePercent = interpolate(sliderPercent, mappingPoints, isForward = true)
-        
+
         val maxVol = currentMaxVolume
-        // map 0-100 to 0-maxVol, mathematically rounding instead of truncating!
         return kotlin.math.round((volumePercent / 100f) * maxVol.toFloat()).toInt().coerceIn(0, maxVol)
     }
 
     private fun mapSystemVolumeToSlider(systemVolume: Int): Int {
         val maxVol = currentMaxVolume
         val volPercent = if (maxVol > 0) (systemVolume.toFloat() / maxVol.toFloat()) * 100f else 0f
-        
+
         val sliderPercent = interpolate(volPercent, mappingPoints, isForward = false)
         return (sliderPercent * 10).toInt().coerceIn(0, 1000)
     }
 
     private fun interpolate(input: Float, points: List<Pair<Float, Float>>, isForward: Boolean): Float {
-        // Points are (X=Slider, Y=Volume)
-        // if isForward: input is Slider(X), find Y
-        // if !isForward: input is Volume(Y), find X
-
         val xKey = if (isForward) { p: Pair<Float, Float> -> p.first } else { p -> p.second }
         val yKey = if (isForward) { p: Pair<Float, Float> -> p.second } else { p -> p.first }
 
-        // Find segment
         for (i in 0 until points.size - 1) {
             val p1 = points[i]
-            val p2 = points[i+1]
-            
+            val p2 = points[i + 1]
+
             val x1 = xKey(p1)
             val x2 = xKey(p2)
-            
+
             if (input >= x1 && input <= x2) {
-                // Linear Interpolation
                 val y1 = yKey(p1)
                 val y2 = yKey(p2)
-                
+
                 if (x2 == x1) return y1
-                
+
                 val t = (input - x1) / (x2 - x1)
                 return y1 + t * (y2 - y1)
             }
         }
-        
-        // Fallback for out of bounds (should not happen with 0-100 constraints)
+
         return if (input < 0) 0f else 100f
     }
 
     val handleIv by lazy {
         ImageView(context).apply {
-            setImageResource(R.drawable.move) // Replace with your drawable resource
+            setImageResource(R.drawable.move)
             alpha = 0.5f
 
-            val size = min(
-                50,
-                50
-            )
+            val size = min(50, 50)
             layoutParams = LayoutParams(
                 size,
                 size
@@ -219,15 +207,15 @@ class FloatingVolumeView(
             }
         }
     }
-    
+
     val channelIv by lazy {
         ImageView(context).apply {
             setImageResource(android.R.drawable.ic_media_play)
             alpha = 0.8f
             setBackgroundResource(getRippleBackground())
             val size = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 42f, resources.displayMetrics).toInt()
-            layoutParams = LayoutParams(size, size).apply { 
-                bottomMargin = 16 
+            layoutParams = LayoutParams(size, size).apply {
+                bottomMargin = 12
             }
             setOnClickListener {
                 scope.inIO {
@@ -261,7 +249,7 @@ class FloatingVolumeView(
             setBackgroundResource(getRippleBackground())
             val size = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 42f, resources.displayMetrics).toInt()
             layoutParams = LayoutParams(size, size).apply { topMargin = 10; bottomMargin = 10 }
-            setOnClickListener { 
+            setOnClickListener {
                 val state = MediaControlBloc.mediaState.value
                 if (state.isPlaying) {
                     MediaControlBloc.pause(context)
@@ -291,7 +279,7 @@ class FloatingVolumeView(
                 topMargin = 10
             }
             visibility = GONE
-            
+
             addView(btnPrev)
             addView(btnPlayPause)
             addView(btnNext)
@@ -301,15 +289,18 @@ class FloatingVolumeView(
     init {
         orientation = VERTICAL
         gravity = Gravity.CENTER
-        
+
         // V0.0.3 BASIC STYLE: No glassmorphism, no clipToOutline.
         setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        
-        val paddingPx = android.util.TypedValue.applyDimension(
-            android.util.TypedValue.COMPLEX_UNIT_DIP, 16f, resources.displayMetrics
+
+        val padH = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_DIP, 6f, resources.displayMetrics
         ).toInt()
-        setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
-        
+        val padV = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_DIP, 8f, resources.displayMetrics
+        ).toInt()
+        setPadding(padH, padV, padH, padV)
+
         addView(channelIv)
         addView(slider)
         addView(handleIv)
@@ -324,7 +315,6 @@ class FloatingVolumeView(
     }
 
     fun showAnimated() {
-        // V0.0.3 BASIC: No ViewPropertyAnimator to prevent freezing.
         visibility = VISIBLE
         alpha = 1f
         scaleX = 1f
@@ -332,12 +322,10 @@ class FloatingVolumeView(
     }
 
     fun applySettings(settings: com.github.mkalmousli.floating_volume.pigeon_impl.ThemeSettings) {
-        // Ignored in fallback basic mode
         slider.applySettings(settings)
     }
 
     fun hideAnimated() {
-        // V0.0.3 BASIC: No ViewPropertyAnimator to prevent freezing.
         visibility = GONE
         alpha = 0f
     }

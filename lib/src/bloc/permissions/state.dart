@@ -25,6 +25,8 @@ abstract class State with _$State {
       overlayPermission.status.isGranted &&
       notificationPermission.status.isGranted &&
       batteryOptimizationPermission.status.isGranted;
+
+  bool get isOverlayGranted => overlayPermission.status.isGranted;
 }
 
 enum PermissionOperation { none, requestingPermission }

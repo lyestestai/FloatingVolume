@@ -1,4 +1,4 @@
-# Architecture Technique — Floating Volume (`v0.9.10+100`)
+# Architecture Technique — Floating Volume (`v0.9.11+101`)
 
 > **Cible Matérielle :** Autoradio / Tablette embarquée sous **Android 8.0/8.1 Oreo (API 26/27)** (souvent masqué en « Android 12+ » par les firmwares MCU chinois type FYT, Topway, MTCD, XYAuto) ainsi qu'Android Automotive OS (AAOS) jusqu'à Android 15 (`targetSdk = 35`).
 
@@ -90,8 +90,8 @@ flowchart LR
 | `floating_volume_prefs` | `auto_start_delay_ms` | `Long` | `10000L` | Délai (`10000` à `60000` ms) avant l'affichage de la bulle flottante. |
 | `floating_volume_prefs` | `last_service_state` | `Boolean` | `false` | État du service avant coupure (maintenu à `true` si tué par l'OS/MCU). |
 | `floating_volume_prefs` | `logs_enabled` | `Boolean` | `false` | État d'ouverture de la fenêtre de diagnostic dans l'écran d'accueil. |
-| `prefs` | `lastX_Portrait` / `lastY_Portrait` | `Int` | `0` | Coordonnées X/Y de la bulle en mode Portrait. |
-| `prefs` | `lastX_Landscape` / `lastY_Landscape` | `Int` | `0` | Coordonnées X/Y de la bulle en mode Paysage (Autoradio). |
+| `prefs` | `lastX_Portrait` / `lastY_Portrait` | `Int` | `-((screenWidth / 2) - 80)` / `0` | Coordonnées X/Y de la bulle en mode Portrait (placée par défaut à gauche pour ne jamais masquer l'interface de configuration). |
+| `prefs` | `lastX_Landscape` / `lastY_Landscape` | `Int` | `-((screenWidth / 2) - 80)` / `0` | Coordonnées X/Y de la bulle en mode Paysage (Autoradio). |
 
 ---
 
@@ -183,3 +183,10 @@ Un clic sur l'icône de canal (`channelIv`) située au-dessus du `CoolSlider` é
 
 > [!IMPORTANT] Comportement Matériel Identifié : Mode « Ne Pas Déranger » (DND)
 > Lorsque le mode **Do Not Disturb (DND)** d'Android est activé sur l'autoradio, le système verrouille de force `STREAM_RING`, `STREAM_NOTIFICATION`, `STREAM_SYSTEM` et `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE` (Waze) à `0`. Tous les appels à `AudioManager` dans `SystemVolumeBloc.kt` sont encapsulés dans des blocs `try-catch` stricts afin qu'aucune `SecurityException` liée au mode DND ne puisse interrompre les coroutines du service.
+
+### 2.4. Garanties d'Interactivité UI & Isolation Tactile de l'Overlay (`v0.9.11`)
+Afin que l'interface de configuration (`HomeScreen`) reste **100 % cliquable et réactive** même lorsque la barre flottante est activée (« ON ») :
+1. **Enregistrement Pigeon Synchrone + `SupervisorJob` (`MainActivity.kt`)** : Les canaux Pigeon (`NativeApi`, `AppearanceApi`, `MediaApi`) et les `EventChannel` (`serviceStatus`, `floatingVolumeVisibility`) sont enregistrés **de manière synchrone** dès `configureFlutterEngine(flutterEngine)`, avant le premier `initState()` Dart, avec un `CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)` dédié qui ne s'annule jamais en cas d'exception isolée.
+2. **Transitions d'état non bloquantes (`VisibilityBloc.kt` & `NativeApiImpl.kt`)** : `VisibilityBloc.show()` / `hide()` ne lèvent plus d'`IllegalStateException` si `FloatingVolumeService` est encore en cours d'initialisation asynchrone lorsque `StatusBloc` enchaîne `startService()` puis `showFloatingVolume()`.
+3. **Isolation des flags `WindowManager.LayoutParams` (`FloatingVolumeService.kt`)** : L'overlay utilise strictement `LayoutParams.FLAG_NOT_FOCUSABLE` lorsqu'il est visible (et `FLAG_NOT_FOCUSABLE or FLAG_NOT_TOUCHABLE` lorsqu'il est masqué), sans `FLAG_LAYOUT_IN_SCREEN` ni `FLAG_LAYOUT_NO_LIMITS`, garantissant que seuls les pixels exacts de la barre capturent le toucher.
+4. **Suppression de la boucle infinie de layout (`CoolSlider.kt`)** : `addOnLayoutChangeListener` ne déclenche `updateProgress()` que si la taille de la barre a réellement changé (`oldBottom - oldTop != bottom - top`), éliminant la saturation à 60 fps du Main Thread Android une fois la barre affichée.

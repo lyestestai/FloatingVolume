@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:bloc/bloc.dart' as a;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:floating_volume/generated/native_api.g.dart';
 import 'package:floating_volume/src/single.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -7,58 +7,26 @@ import 'package:permission_handler/permission_handler.dart';
 import 'event.dart' as e;
 import 'state.dart' as s;
 
-Stream<PermissionStatus> _createPermissionStream(
-  Permission permission, {
-  Duration pollingInterval = const Duration(seconds: 1),
-}) async* {
-  yield await permission.status;
-  while (true) {
-    await Future.delayed(pollingInterval);
-    yield await permission.status;
-  }
-}
-
-Future<bool> shouldRequestPermissions() async {
-  final info = await DeviceInfoPlugin().androidInfo;
-  return info.version.sdkInt >= 23; // Only request on Android 6.0+
-}
-
 class Bloc extends a.Bloc<e.Event, s.State> {
-  bool? _shouldRequestPermissions;
+  Timer? _pollingTimer;
 
   Bloc(super.initialState) {
     on<e.Event>((event, emit) async {
-      if (!(_shouldRequestPermissions ??= await shouldRequestPermissions())) {
-        emit(
-          state.copyWith(
-            operation: s.Operation.none,
-            overlayPermission: state.overlayPermission.copyWith(
-              isInitialized: true,
-              status: PermissionStatus.granted,
-            ),
-            notificationPermission: state.notificationPermission.copyWith(
-              isInitialized: true,
-              status: PermissionStatus.granted,
-            ),
-            batteryOptimizationPermission: state.batteryOptimizationPermission
-                .copyWith(
-                  isInitialized: true,
-                  status: PermissionStatus.granted,
-                ),
-          ),
-        );
-        return;
-      }
-
       switch (event) {
         case e.Event.initialize:
           emit(state.copyWith(operation: s.Operation.initializing));
 
-          final PermissionStatus overlayPermission =
-              await Permission.systemAlertWindow.status;
-          final notificationPermission = await Permission.notification.status;
-          final batteryOptimizationPermission =
-              await Permission.ignoreBatteryOptimizations.status;
+          PermissionStatus overlayPermission = PermissionStatus.denied;
+          PermissionStatus notificationPermission = PermissionStatus.denied;
+          PermissionStatus batteryOptimizationPermission =
+              PermissionStatus.denied;
+
+          try {
+            overlayPermission = await Permission.systemAlertWindow.status;
+            notificationPermission = await Permission.notification.status;
+            batteryOptimizationPermission =
+                await Permission.ignoreBatteryOptimizations.status;
+          } catch (_) {}
 
           emit(
             state.copyWith(
@@ -79,51 +47,38 @@ class Bloc extends a.Bloc<e.Event, s.State> {
             ),
           );
 
-          Future<void> observePermission(
-            Permission permission,
-            Function(PermissionStatus v) onStatusChanged,
-          ) async {
-            final stream = _createPermissionStream(
-              permission,
-              pollingInterval: Duration(seconds: 5),
-            );
-            await for (final status in stream) {
-              onStatusChanged(status);
+          _pollingTimer?.cancel();
+          _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+            if (!isClosed) {
+              add(e.Event.refresh);
             }
-          }
+          });
+          break;
 
-          await Future.wait([
-            observePermission(
-              Permission.systemAlertWindow,
-              (status) => emit(
+        case e.Event.refresh:
+          try {
+            final oStatus = await Permission.systemAlertWindow.status;
+            final nStatus = await Permission.notification.status;
+            final bStatus = await Permission.ignoreBatteryOptimizations.status;
+
+            if (oStatus != state.overlayPermission.status ||
+                nStatus != state.notificationPermission.status ||
+                bStatus != state.batteryOptimizationPermission.status) {
+              emit(
                 state.copyWith(
                   overlayPermission: state.overlayPermission.copyWith(
-                    status: status,
+                    status: oStatus,
                   ),
-                ),
-              ),
-            ),
-            observePermission(
-              Permission.notification,
-              (status) => emit(
-                state.copyWith(
                   notificationPermission: state.notificationPermission.copyWith(
-                    status: status,
+                    status: nStatus,
                   ),
-                ),
-              ),
-            ),
-            observePermission(
-              Permission.ignoreBatteryOptimizations,
-              (status) => emit(
-                state.copyWith(
                   batteryOptimizationPermission: state
                       .batteryOptimizationPermission
-                      .copyWith(status: status),
+                      .copyWith(status: bStatus),
                 ),
-              ),
-            ),
-          ]);
+              );
+            }
+          } catch (_) {}
           break;
 
         case e.Event.requestOverlayPermission:
@@ -204,6 +159,12 @@ class Bloc extends a.Bloc<e.Event, s.State> {
       }
     });
   }
+
+  @override
+  Future<void> close() {
+    _pollingTimer?.cancel();
+    return super.close();
+  }
 }
 
 Future<PermissionStatus> requestPermission(
@@ -215,27 +176,17 @@ Future<PermissionStatus> requestPermission(
   }
 
   if (status.isPermanentlyDenied) {
-    await nativeApi.showToast(
-      "${permission.toString().split('.').last} permission is permanently denied. Please enable it in settings.",
-      ToastDuration.long,
-    );
+    try {
+      await nativeApi.showToast(
+        "${permission.toString().split('.').last} permission is permanently denied. Please enable it in settings.",
+        ToastDuration.long,
+      );
+    } catch (_) {}
     final isOpened = await openAppSettings();
     if (!isOpened) {
       return status;
     }
-
-    Future<PermissionStatus> listenToPermission() async {
-      await for (final newStatus in _createPermissionStream(
-        permission,
-        pollingInterval: const Duration(milliseconds: 500),
-      ).timeout(const Duration(minutes: 10))) {
-        return newStatus;
-      }
-
-      return status;
-    }
-
-    return listenToPermission();
+    return permission.status;
   }
 
   return permission.request();

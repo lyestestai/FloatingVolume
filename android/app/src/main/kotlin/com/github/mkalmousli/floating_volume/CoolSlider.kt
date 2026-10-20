@@ -1,7 +1,6 @@
 package com.github.mkalmousli.floating_volume
 
 import android.content.Context
-import android.graphics.Color
 import android.view.*
 import android.widget.LinearLayout
 import androidx.core.view.updateLayoutParams
@@ -37,7 +36,7 @@ class CoolSlider(
             } catch (e: Throwable) {
                 android.graphics.Color.parseColor("#2196F3")
             }
-            
+
             val drawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = 100f // Fully rounded ends
@@ -65,7 +64,7 @@ class CoolSlider(
             setColor(trackBgColor)
         }
         background = trackDrawable
-        
+
         addView(progressView)
         gravity = Gravity.BOTTOM
 
@@ -76,6 +75,7 @@ class CoolSlider(
             when (event.action) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                     val size = if (orientation.value == Orientation.Horizontal) width else height
+                    if (size <= 0) return@setOnTouchListener false
                     val pos = if (orientation.value == Orientation.Horizontal) event.x else event.y
                     val clamped = pos.coerceIn(0f, size.toFloat())
 
@@ -97,12 +97,14 @@ class CoolSlider(
             }
         }
 
-        addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateProgress()
+        addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                updateProgress()
+            }
         }
 
         scope.launch {
-            combine(value, min, max) { _, _, _ ->  }.collectLatest {
+            combine(value, min, max) { _, _, _ -> }.collectLatest {
                 updateProgress()
             }
         }
@@ -117,16 +119,22 @@ class CoolSlider(
         if (orientation.value == Orientation.Horizontal) {
             val total = width
             val progressSize = (total * fraction).toInt()
-            progressView.updateLayoutParams<LayoutParams> {
-                width = progressSize
-                height = LayoutParams.MATCH_PARENT
+            val lp = progressView.layoutParams
+            if (lp == null || lp.width != progressSize || lp.height != LayoutParams.MATCH_PARENT) {
+                progressView.updateLayoutParams<LayoutParams> {
+                    width = progressSize
+                    height = LayoutParams.MATCH_PARENT
+                }
             }
         } else {
             val total = height
             val progressSize = (total * fraction).toInt()
-            progressView.updateLayoutParams<LayoutParams> {
-                height = progressSize
-                width = LayoutParams.MATCH_PARENT
+            val lp = progressView.layoutParams
+            if (lp == null || lp.height != progressSize || lp.width != LayoutParams.MATCH_PARENT) {
+                progressView.updateLayoutParams<LayoutParams> {
+                    height = progressSize
+                    width = LayoutParams.MATCH_PARENT
+                }
             }
         }
     }

@@ -53,7 +53,7 @@ class PermissionsScreen extends StatelessWidget {
 }
 
 class _OverlayPermission extends StatelessWidget {
-  const _OverlayPermission({super.key});
+  const _OverlayPermission();
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +83,7 @@ class _OverlayPermission extends StatelessWidget {
 }
 
 class _NotificationPermission extends StatelessWidget {
-  const _NotificationPermission({super.key});
+  const _NotificationPermission();
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +113,7 @@ class _NotificationPermission extends StatelessWidget {
 }
 
 class _BatteryOptimizationPermission extends StatelessWidget {
-  const _BatteryOptimizationPermission({super.key});
+  const _BatteryOptimizationPermission();
 
   @override
   Widget build(BuildContext context) {

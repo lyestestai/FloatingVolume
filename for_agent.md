@@ -1,4 +1,4 @@
-# Journal de Mémoire Agent IA — Floating Volume (`v0.9.10+100`)
+# Journal de Mémoire Agent IA — Floating Volume (`v0.9.11+101`)
 
 Ce fichier constitue la mémoire technique permanente destinée aux agents IA / LLM intervenant sur le projet **Floating Volume (Automotive Head-Unit Edition)**. Il doit être lu au début de chaque session et mis à jour systématiquement à chaque release.
 
@@ -43,7 +43,7 @@ Ce fichier constitue la mémoire technique permanente destinée aux agents IA / 
 
 ---
 
-## 3. Historique Technique des Réalisations (`v0.9.8` $\rightarrow$ `v0.9.10+100`)
+## 3. Historique Technique des Réalisations (`v0.9.8` $\rightarrow$ `v0.9.11+101`)
 
 ### A. Ce qui a été corrigé et réalisé dans la `v0.9.9+99` (Réparation Complète de l'Auto-Start)
 Suite au constat que le démarrage automatique ne fonctionnait pas en `v0.9.8`, un audit complet du code a révélé **6 causes cumulées**, toutes résolues dans la `v0.9.9+99` :
@@ -91,3 +91,33 @@ Pour analyser le comportement exact de l'autoradio au démarrage (distinguer un 
      - **Partager / Email** : ouvre le sélecteur de partage Android (`Intent.ACTION_SEND` `text/plain` avec le rapport dans `Intent.EXTRA_TEXT`) compatible avec les clients email et éditeurs de texte.
      - **Enregistrer (`Download/`)** : écrit directement un fichier `FloatingVolume_Log_<timestamp>.txt` dans `/storage/emulated/0/Download/` sur le disque de l'autoradio.
      - **Actualiser** & **Effacer**.
+
+### C. Ce qui a été corrigé et réalisé dans la `v0.9.11+101` (Correctif Majeur : UI Configuration Non Cliquable / Gel des Boutons une fois sur « ON »)
+Suite au retour terrain sur la `v0.9.9` (*« l'interface de configuration n'est pas cliquable : le bouton de démarrage auto ne se lance pas, aucun autre bouton ne fonctionne une fois la barre mise à "ON" »*), un audit de bout en bout (Kotlin + Flutter) a identifié et corrigé **6 causes racines cumulées** :
+
+1. **Exception fatale `IllegalStateException` dans `VisibilityBloc.kt` qui tuait `MainActivity.lifecycleScope` dès la mise sur « ON » (`VisibilityBloc.kt`, `NativeApiImpl.kt`, `MainActivity.kt`) :**
+   - **Cause :** Quand l'utilisateur activait la barre (« ON »), `StatusBloc` appelait `await nativeApi.startService()` puis immédiatement (1 ms après) `await nativeApi.showFloatingVolume()`. Or `startForegroundService()` est asynchrone côté Android : `FloatingVolumeService` n'avait pas encore passé `ServiceStatusBloc.state` à `State.On`. `VisibilityBloc` exécutait alors `if (!isServiceRunning) throw IllegalStateException("Service must be running to show the mode.")` à l'intérieur de `NativeApiImpl.showFloatingVolume()` qui tournait sur le `lifecycleScope` de `MainActivity` sans `SupervisorJob`. Cette exception non interceptée annulait définitivement le `CoroutineScope` de `NativeApiImpl` : **tous les appels Pigeon suivants (`setAutoStartEnabled`, `setAutoStartDelay`, `showToast`, etc.) restaient figés pour toujours dès que la barre était mise sur « ON »**.
+   - **Correctif :** Suppression du `throw IllegalStateException` dans `VisibilityBloc.kt` (remplacé par des méthodes synchrones `VisibilityBloc.show()` / `hide()` / `toggle()`), remplacement de `lifecycleScope.apply { inMain { NativeApi.setUp(...) } }` dans `MainActivity.kt` par un enregistrement **synchrone** dans `configureFlutterEngine(flutterEngine)` adossé à un `CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)` dédié, et protection de chaque méthode de `NativeApiImpl.kt` par `try-catch`.
+
+2. **Enregistrement tardif des canaux Pigeon au démarrage de `MainActivity` (`MainActivity.kt`) :**
+   - **Cause :** En `v0.9.9`, `NativeApi.setUp` était lancé dans `lifecycleScope.inMain { ... }` (posté dans la file d'attente du thread principal Android), donc *après* l'exécution du `initState()` des widgets Flutter (`AutoStartSettingsWidget`).
+   - **Correctif :** Enregistrement synchrone immédiat dans `configureFlutterEngine()`.
+
+3. **Boucle infinie de layout à 60 fps dans `CoolSlider.kt` saturant le Main Thread dès l'affichage de la barre (`CoolSlider.kt`) :**
+   - **Cause :** `CoolSlider.init` utilisait `addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateProgress() }`, et `updateProgress()` appelait systématiquement `progressView.updateLayoutParams { height = progressSize }` (`setLayoutParams` $\rightarrow$ `requestLayout()`), déclenchant un nouveau pass de layout à chaque frame (60 fois par seconde) tant que la barre était affichée (« ON »), affamant le thread UI de `MainActivity`.
+   - **Correctif :** `addOnLayoutChangeListener` vérifie désormais si la hauteur a réellement changé (`oldBottom - oldTop != bottom - top`), et `updateProgress()` ne modifie `layoutParams.height` que si `currentParams.height != progressSize`.
+
+4. **Flags `WindowManager.LayoutParams` trop larges et position initiale plein centre (`FloatingVolumeService.kt`, `PositionBloc.kt`, `FloatingVolumeView.kt`) :**
+   - **Cause :** En `v0.9.9`, `layoutParams.flags` combinait `FLAG_NOT_FOCUSABLE or FLAG_NOT_TOUCH_MODAL or FLAG_LAYOUT_IN_SCREEN or FLAG_LAYOUT_NO_LIMITS` avec `Gravity.CENTER` et une position par défaut `(x = 0, y = 0)`. Dès l'activation, la barre flottante apparaissait **exactement au milieu de l'écran d'accueil**, par-dessus le bouton ON/OFF, les boutons de thème et le switch Auto-Start, tout en interceptant les touchers.
+   - **Correctif :** Retour strict au flag `LayoutParams.FLAG_NOT_FOCUSABLE` (et `FLAG_NOT_FOCUSABLE or FLAG_NOT_TOUCHABLE` quand masqué), position par défaut placée sur le bord gauche de l'écran (`-((screenWidth / 2) - 80)`), hauteur du slider adaptative (`(screenHeight * 0.55f).toInt().coerceIn(220, 800)`) pour les écrans d'autoradio `1024x600`, et sauvegarde disque uniquement au relâchement du doigt (`ACTION_UP` / `ACTION_CANCEL`).
+
+5. **File d'événements bloquée dans `StatusBloc` et `PermissionsBloc` côté Flutter (`lib/src/bloc/status/bloc.dart` & `lib/src/bloc/permissions/bloc.dart`) :**
+   - **Cause :** Le handler `on<e.Event>` faisait un `await Future.wait([...])` sur des flux infinis (`await for` et `while(true)`), bloquant tout nouvel événement BLoC si un seul canal natif tardait à répondre.
+   - **Correctif :** Remplacement par des `StreamSubscription` non bloquantes et déduplication des émissions du `Timer.periodic`.
+
+6. **Initialisation immédiate des BLoCs (`lazy: false`) & Correction du symlink `images/logo.svg` (`lib/src/app.dart`, `lib/src/screens/home.dart`, `images/logo.svg`) :**
+   - **Cause découverte par `flutter test` en résolution autoradio `1024x600` :** Sur un écran paysage de `600px` de haut, la tuile `Manage Permissions` (`BlocBuilder<bpermissions.Bloc>`) située tout en bas de la `ListView` est hors-écran (non construite). Comme `BlocProvider` est `lazy: true` par défaut, `bpermissions.Bloc` n'était jamais initialisé tant que l'utilisateur n'avait pas fait défiler la page jusqu'en bas, bloquant le bouton principal ON/OFF au premier clic. De plus, `images/logo.svg` était un lien symbolique Unix cassé sous Windows (`11 octets`), provoquant une erreur de parsing SVG sur l'écran d'accueil.
+   - **Correctif :** Passage des trois `BlocProvider` en `lazy: false` dans `lib/src/app.dart`, autorisation d'extinction immédiate de la barre même sans vérification de permission, et remplacement de `images/logo.svg` par le vrai fichier SVG vectoriel.
+
+7. **Tests Automatisés d'Interactivité (`test/home_interactive_test.dart`) :**
+   - Ajout d'une suite de tests de widgets automatisée (`flutter test`) simulant un écran d'autoradio `1024x600`, l'activation de la barre sur « ON », puis le clic sur les boutons de thème, le switch Auto-Start, le glissement du slider de délai (10s–60s), l'ouverture de la fenêtre de logs, les boutons d'export et la remise sur « OFF ».

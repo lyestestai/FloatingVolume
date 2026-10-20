@@ -26,8 +26,17 @@
 - [x] Actions **Copier** (presse-papiers), **Partager / Email** (`ACTION_SEND` `text/plain`), **Enregistrer (`Download/`)** (`.txt` sur le disque), **Actualiser** et **Effacer**.
 - [x] Compilation et livraison de `APK/FloatingVolume-v0.9.10-basic.apk`.
 
-## Phase 4 : Évolutions Futures (Backlog)
-- [ ] Validation terrain sur l'autoradio du démarrage automatique en Cold Boot et en sortie de veille ACC ON (`v0.9.10`).
+## Phase 4 : Réactivité de l'Interface de Configuration & Isolation Tactile (`v0.9.11+101`)
+- [x] Enregistrement synchrone des canaux Pigeon dès `MainActivity.configureFlutterEngine` avec `SupervisorJob` dédié.
+- [x] Suppression de l'`IllegalStateException` dans `VisibilityBloc.kt` qui annulait le `CoroutineScope` de `MainActivity` lors du passage rapide de `startService()` à `showFloatingVolume()`.
+- [x] Suppression de la boucle infinie de layout à 60 fps dans `CoolSlider.kt` (`addOnLayoutChangeListener`).
+- [x] Restauration des flags stricts `LayoutParams.FLAG_NOT_FOCUSABLE` et positionnement par défaut sur le bord gauche pour ne jamais recouvrir les contrôles de `HomeScreen`.
+- [x] Refactorisation non-bloquante de `StatusBloc` et `PermissionsBloc` (`StreamSubscription`) et suppression du verrou `_isLoading` sur `AutoStartSettingsWidget`.
+- [x] Création et validation des tests automatisés de widgets (`test/home_interactive_test.dart` via `flutter test`).
+- [x] Compilation et livraison de `APK/FloatingVolume-v0.9.11-basic.apk`.
+
+## Phase 5 : Évolutions Futures (Backlog)
+- [ ] Validation terrain sur l'autoradio du démarrage automatique en Cold Boot et en sortie de veille ACC ON (`v0.9.11`).
 - [ ] Option permettant de choisir quels flux audio inclure dans la rotation du bouton canal (masquer les canaux non utilisés après diagnostic).
 - [ ] Mémorisation du dernier canal audio sélectionné dans `SharedPreferences`.
 

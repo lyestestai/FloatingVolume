@@ -222,7 +222,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         val logsEnabled = prefs.getBoolean(KEY_DIAGNOSTIC_LOGS_ENABLED, false)
         val serviceRunning = FloatingVolumeService.instance != null
 
-        sb.appendLine("=== FLOATING VOLUME v0.9.10+100 — DIAGNOSTIC ===")
+        sb.appendLine("=== FLOATING VOLUME v0.9.11+101 — DIAGNOSTIC ===")
         sb.appendLine("Date rapport    : $now")
         sb.appendLine("Android affiché : Android ${Build.VERSION.RELEASE} (SDK_INT réel = ${Build.VERSION.SDK_INT})")
         sb.appendLine("Matériel        : ${Build.MANUFACTURER} | ${Build.MODEL} | ${Build.BOARD} | ${Build.HARDWARE}")
@@ -347,7 +347,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
         return Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "FloatingVolume v0.9.10 - Logs de Diagnostic")
+            putExtra(Intent.EXTRA_SUBJECT, "FloatingVolume v0.9.11 - Logs de Diagnostic")
             putExtra(Intent.EXTRA_TEXT, reportText)
         }
     }

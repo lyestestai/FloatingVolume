@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 object SystemOrientationBloc {
     private val _state =
@@ -46,11 +47,14 @@ object SystemOrientationBloc {
 
     suspend fun observeSystemOrientation(context: Context) {
         val flow = callbackFlow {
+            var lastSent: Orientation? = null
             val listener = object : OrientationEventListener(context) {
                 override fun onOrientationChanged(ignored: Int) {
-                    trySend(
-                        Utils.getCurrentOrientation(context)
-                    )
+                    val current = Utils.getCurrentOrientation(context)
+                    if (current != lastSent) {
+                        lastSent = current
+                        trySend(current)
+                    }
                 }
             }
 
@@ -58,13 +62,10 @@ object SystemOrientationBloc {
             awaitClose { listener.disable() }
         }
 
-        flow.collectLatest {
+        flow.distinctUntilChanged().collectLatest {
             _state.emit(
                 State.Initialized(it)
             )
         }
     }
-
-
-
 }

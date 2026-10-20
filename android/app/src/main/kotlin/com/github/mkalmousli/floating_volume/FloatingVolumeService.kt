@@ -52,6 +52,9 @@ class FloatingVolumeService : Service() {
     @Volatile
     private var isBootDelayActive = false
 
+    @Volatile
+    private var isDraggingOverlay = false
+
     private var screenWakeReceiver: BroadcastReceiver? = null
 
     companion object {
@@ -162,6 +165,10 @@ class FloatingVolumeService : Service() {
         CrashHandler.init(this)
         CrashHandler.logEvent(this, TAG, "Service onCreate() called")
 
+        // Synchronously mark service ON so Flutter UI & VisibilityBloc never see a stale Off state
+        ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
+        VisibilityBloc.show()
+
         // Immediately promote to foreground on creation to satisfy Android 8+ 5-second rule
         promoteToForeground(isVisible = true)
 
@@ -196,6 +203,10 @@ class FloatingVolumeService : Service() {
         val c = this
         val audioManager = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+        // Ensure ServiceStatusBloc is On BEFORE starting the Off-watcher coroutine
+        ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
+        VisibilityBloc.show()
+
         scope.apply {
             inIO {
                 SystemVolumeBloc.initialize(c)
@@ -225,10 +236,6 @@ class FloatingVolumeService : Service() {
             }
             inIO {
                 PositionBloc.handleEvents(c)
-            }
-
-            inIO {
-                ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
             }
 
             inIO {
@@ -284,8 +291,24 @@ class FloatingVolumeService : Service() {
 
                     inMain {
                         when (state) {
-                            VisibilityBloc.State.Hidden -> floatingMuteView.hideAnimated()
-                            VisibilityBloc.State.Shown -> floatingMuteView.showAnimated()
+                            VisibilityBloc.State.Hidden -> {
+                                layoutParams.flags = LayoutParams.FLAG_NOT_FOCUSABLE or LayoutParams.FLAG_NOT_TOUCHABLE
+                                floatingMuteView.hideAnimated()
+                                if (floatingMuteView.isAttachedToWindow) {
+                                    try {
+                                        windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                                    } catch (_: Throwable) {}
+                                }
+                            }
+                            VisibilityBloc.State.Shown -> {
+                                layoutParams.flags = LayoutParams.FLAG_NOT_FOCUSABLE
+                                floatingMuteView.showAnimated()
+                                if (floatingMuteView.isAttachedToWindow) {
+                                    try {
+                                        windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                                    } catch (_: Throwable) {}
+                                }
+                            }
                         }
                     }
                 }
@@ -303,14 +326,18 @@ class FloatingVolumeService : Service() {
                     .filterIsInstance<PositionBloc.State.Initialized>()
                     .map { it.position }
                     .collectLatest { position ->
-                        inMain {
-                            layoutParams.x = position.x
-                            layoutParams.y = position.y
-                            if (floatingMuteView.isAttachedToWindow) {
-                                try {
-                                    windowManager.updateViewLayout(floatingMuteView, layoutParams)
-                                } catch (e: Throwable) {
-                                    Log.e(TAG, "Failed to update overlay position", e)
+                        if (!isDraggingOverlay) {
+                            inMain {
+                                if (layoutParams.x != position.x || layoutParams.y != position.y) {
+                                    layoutParams.x = position.x
+                                    layoutParams.y = position.y
+                                    if (floatingMuteView.isAttachedToWindow) {
+                                        try {
+                                            windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                                        } catch (e: Throwable) {
+                                            Log.e(TAG, "Failed to update overlay position", e)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -327,7 +354,9 @@ class FloatingVolumeService : Service() {
         FloatingVolumeView(this)
     }
 
-    // Android 8 Oreo Automotive Head-Unit safe flags: strictly NO GPU blur by default
+    // Strictly FLAG_NOT_FOCUSABLE (as in v0.0.3 / v0.9.8):
+    // Do NOT use FLAG_LAYOUT_NO_LIMITS or FLAG_LAYOUT_IN_SCREEN, which cause Android WindowManager
+    // to expand the overlay's input frame and block touches on MainActivity underneath.
     private var layoutParams =
         LayoutParams(
             LayoutParams.WRAP_CONTENT,
@@ -338,10 +367,7 @@ class FloatingVolumeService : Service() {
                 @Suppress("DEPRECATION")
                 LayoutParams.TYPE_PHONE
             },
-            LayoutParams.FLAG_NOT_FOCUSABLE or
-                LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
 
@@ -368,6 +394,7 @@ class FloatingVolumeService : Service() {
         floatingMuteView.handleIv.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    isDraggingOverlay = true
                     initialX = layoutParams.x
                     initialY = layoutParams.y
                     initialTouchX = event.rawX
@@ -383,33 +410,42 @@ class FloatingVolumeService : Service() {
                     val newX = initialX + dx.toInt()
                     val newY = initialY + dy.toInt()
 
-                    layoutParams.x = newX
-                    layoutParams.y = newY
+                    if (layoutParams.x != newX || layoutParams.y != newY) {
+                        layoutParams.x = newX
+                        layoutParams.y = newY
 
-                    scope.inIO {
-                        PositionBloc.event.emit(
-                            PositionBloc.Event.UpdatePosition(
-                                PositionBloc.Position(newX, newY)
-                            )
-                        )
-                    }
-
-                    if (floatingMuteView.isAttachedToWindow) {
-                        try {
-                            windowManager.updateViewLayout(floatingMuteView, layoutParams)
-                        } catch (e: Throwable) {
-                            Log.e(TAG, "Failed to move overlay", e)
+                        if (floatingMuteView.isAttachedToWindow) {
+                            try {
+                                windowManager.updateViewLayout(floatingMuteView, layoutParams)
+                            } catch (e: Throwable) {
+                                Log.e(TAG, "Failed to move overlay", e)
+                            }
                         }
                     }
                     true
                 }
 
-                MotionEvent.ACTION_UP -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isDraggingOverlay = false
+                    val finalX = layoutParams.x
+                    val finalY = layoutParams.y
+                    scope.inIO {
+                        PositionBloc.event.emit(
+                            PositionBloc.Event.UpdatePosition(
+                                PositionBloc.Position(finalX, finalY)
+                            )
+                        )
+                    }
+
                     val duration = System.currentTimeMillis() - startTime
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
 
-                    if (duration < 250 && kotlin.math.abs(dx.toDouble()) < 20.0 && kotlin.math.abs(dy.toDouble()) < 20.0) {
+                    if (event.action == MotionEvent.ACTION_UP &&
+                        duration < 250 &&
+                        kotlin.math.abs(dx.toDouble()) < 20.0 &&
+                        kotlin.math.abs(dy.toDouble()) < 20.0
+                    ) {
                         floatingMuteView.toggleSliderVisibility()
                         if (floatingMuteView.isAttachedToWindow) {
                             try {
@@ -454,11 +490,13 @@ class FloatingVolumeService : Service() {
                 return
             }
             if (!floatingMuteView.isAttachedToWindow) {
+                layoutParams.flags = LayoutParams.FLAG_NOT_FOCUSABLE
                 windowManager.addView(floatingMuteView, layoutParams)
                 Log.i(TAG, "FloatingVolumeView attached to WindowManager successfully.")
                 CrashHandler.logEvent(this, TAG, "FloatingVolumeView attached to WindowManager at (${layoutParams.x}, ${layoutParams.y})")
             }
             if (VisibilityBloc.state.value is VisibilityBloc.State.Shown) {
+                layoutParams.flags = LayoutParams.FLAG_NOT_FOCUSABLE
                 floatingMuteView.showAnimated()
             }
         } catch (e: Throwable) {
@@ -471,6 +509,8 @@ class FloatingVolumeService : Service() {
         val requestedDelayMs = intent?.getLongExtra(EXTRA_BOOT_DELAY_MS, 0L) ?: 0L
         Log.d(TAG, "onStartCommand called (requestedDelayMs=${requestedDelayMs}ms, isEngineInitialized=$isEngineInitialized)")
         CrashHandler.logEvent(this, TAG, "onStartCommand (requestedDelayMs=${requestedDelayMs}ms, isEngineInitialized=$isEngineInitialized)")
+
+        ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
 
         // Every startForegroundService() call on Android 8+ MUST be matched by startForeground()
         if (!isEngineInitialized && requestedDelayMs > 0L) {
@@ -498,6 +538,7 @@ class FloatingVolumeService : Service() {
             }
         } else if (!isBootDelayActive) {
             scope.inMain {
+                VisibilityBloc.show()
                 ensureOverlayAttached()
             }
         }
@@ -585,4 +626,4 @@ class FloatingVolumeService : Service() {
             Log.e(TAG, "Failed to save service state", e)
         }
     }
-}
+}

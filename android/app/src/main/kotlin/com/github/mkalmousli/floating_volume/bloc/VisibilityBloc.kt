@@ -17,7 +17,7 @@ object VisibilityBloc {
     val state = _state.asStateFlow()
 
     val event =
-        MutableSharedFlow<Event>()
+        MutableSharedFlow<Event>(extraBufferCapacity = 16)
 
 
     sealed class State {
@@ -31,17 +31,31 @@ object VisibilityBloc {
         object Toggle : Event()
     }
 
+    fun show() {
+        _state.value = State.Shown
+    }
+
+    fun hide() {
+        _state.value = State.Hidden
+    }
+
+    fun toggle() {
+        _state.value = when (_state.value) {
+            State.Hidden -> State.Shown
+            State.Shown -> State.Hidden
+        }
+    }
 
     suspend fun handleServiceStatusChanges() {
         ServiceStatusBloc.state.collect { serviceState ->
             when (serviceState) {
                 is ServiceStatusBloc.State.On -> {
                     Log.d(TAG, "Floating service is ON")
-                    _state.emit(State.Shown)
+                    _state.value = State.Shown
                 }
                 else -> {
                     Log.d(TAG, "Floating service is OFF or CRASHED")
-                    _state.emit(State.Hidden)
+                    _state.value = State.Hidden
                 }
             }
         }
@@ -53,34 +67,20 @@ object VisibilityBloc {
             Log.d(TAG, "Received event: $it")
             when (it) {
                 Event.Show -> {
-                    val isServiceRunning = ServiceStatusBloc.state.value is ServiceStatusBloc.State.On
-
-                    if (!isServiceRunning) {
-                        throw IllegalStateException("Service must be running to show the mode.")
-                    }
-
                     Log.d(TAG, "Showing mode")
-                    _state.emit(State.Shown)
+                    _state.value = State.Shown
                 }
-
 
                 Event.Hide -> {
                     Log.d(TAG, "Hiding mode")
-                    _state.emit(State.Hidden)
+                    _state.value = State.Hidden
                 }
 
                 Event.Toggle -> {
                     Log.d(TAG, "Toggling mode")
-
-                    val newState = when (_state.value) {
-                        State.Hidden -> State.Shown
-                        State.Shown -> State.Hidden
-                    }
-                    _state.emit(newState)
+                    toggle()
                 }
             }
         }
     }
-
-
 }

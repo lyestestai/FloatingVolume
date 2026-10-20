@@ -24,6 +24,8 @@ class NativeApiImpl(
             try {
                 CrashHandler.logEvent(context, TAG, "Manual startService requested from Flutter UI")
                 com.github.mkalmousli.floating_volume.FloatingVolumeService.isStoppingIntentionally = false
+                ServiceStatusBloc.updateState(ServiceStatusBloc.State.On)
+                VisibilityBloc.show()
                 val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java).apply {
                     putExtra(com.github.mkalmousli.floating_volume.FloatingVolumeService.EXTRA_BOOT_DELAY_MS, 0L)
                 }
@@ -32,7 +34,6 @@ class NativeApiImpl(
                 } else {
                     context.startService(intent)
                 }
-                // Service status is updated in FloatingVolumeService.onCreate()
                 callback(Result.success(Unit))
             } catch (e: Exception) {
                 CrashHandler.logEvent(context, TAG, "startService failed: ${e.message}")
@@ -46,9 +47,10 @@ class NativeApiImpl(
             try {
                 CrashHandler.logEvent(context, TAG, "Manual stopService requested from Flutter UI")
                 com.github.mkalmousli.floating_volume.FloatingVolumeService.isStoppingIntentionally = true
+                VisibilityBloc.hide()
+                ServiceStatusBloc.updateState(ServiceStatusBloc.State.Off)
                 val intent = Intent(context, com.github.mkalmousli.floating_volume.FloatingVolumeService::class.java)
                 context.stopService(intent)
-                // Service status is updated in FloatingVolumeService.onDestroy()
                 callback(Result.success(Unit))
             } catch (e: Exception) {
                 CrashHandler.logEvent(context, TAG, "stopService failed: ${e.message}")
@@ -58,35 +60,33 @@ class NativeApiImpl(
     }
 
     override fun hideFloatingVolume(callback: (Result<Unit>) -> Unit) {
-        scope.inIO {
-            VisibilityBloc.event.emit(
-                VisibilityBloc.Event.Hide
-            )
-            inMain {
+        scope.inMain {
+            try {
+                VisibilityBloc.hide()
                 callback(Result.success(Unit))
+            } catch (e: Exception) {
+                callback(Result.failure(e))
             }
         }
     }
 
     override fun showFloatingVolume(callback: (Result<Unit>) -> Unit) {
-        scope.inIO {
-            VisibilityBloc.event.emit(
-                VisibilityBloc.Event.Show
-            )
-            inMain {
+        scope.inMain {
+            try {
+                VisibilityBloc.show()
                 callback(Result.success(Unit))
+            } catch (e: Exception) {
+                callback(Result.failure(e))
             }
         }
     }
 
     override fun setMaxVolume(maxVolume: Long, callback: (Result<Unit>) -> Unit) {
-        scope.inIO {
-//            SystemVolumeBloc
-        }
+        callback(Result.success(Unit))
     }
 
     override fun setMinVolume(minVolume: Long, callback: (Result<Unit>) -> Unit) {
-//        TODO("Not yet implemented")
+        callback(Result.success(Unit))
     }
 
     override fun showToast(
